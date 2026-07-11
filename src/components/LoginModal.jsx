@@ -73,7 +73,7 @@ export default function LoginModal({ mode, onClose, onModeChange }) {
         </button>
 
         <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-one-white/8 shadow-[0_0_0_1px_rgba(198,201,215,.18),0_0_40px_rgba(107,225,227,.18)]">
-          <img src="/img/escencial-logoblanco.png" alt="Logo DISC" className="h-[60%] w-[60%] object-contain" />
+          <img src="/img/one-iconocolor.png" alt="Logo ONE" className="h-[60%] w-[60%] object-contain" />
         </div>
 
         <h2 className="mb-2 text-center font-title text-[2rem] font-extrabold max-[560px]:text-[1.75rem]">

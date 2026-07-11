@@ -298,14 +298,14 @@ export default function Landing() {
           {/* HERO */}
           <section
             id="inicio"
-            className="mx-auto grid w-full max-w-[1180px] grid-cols-[1.05fr_.95fr] items-center gap-10 py-12 max-[980px]:grid-cols-1 max-[980px]:py-8"
+            className="mx-auto grid w-full max-w-[1180px] min-h-[calc(100vh-96px)] min-h-[calc(100dvh-96px)] grid-cols-[1.05fr_.95fr] items-center gap-16 py-12 max-[980px]:grid-cols-1 max-[980px]:min-h-0 max-[980px]:gap-10 max-[980px]:py-8"
           >
             <div>
-              <span className="inline-flex items-center gap-2 rounded-full border border-one-cyan/30 bg-white px-3.5 py-2 text-sm font-medium tracking-[.02em] text-slate-700 shadow-[0_2px_10px_rgba(0,0,0,.04)]">
+              <span className="inline-flex items-center gap-2 rounded-full border border-one-cyan/30 bg-white px-4 py-2.5 text-sm font-medium tracking-[.02em] text-slate-700 shadow-[0_2px_10px_rgba(0,0,0,.04)]">
                 Evaluación de comportamiento DISC
               </span>
 
-              <h1 className="mb-3.5 mt-[18px] font-title text-[clamp(38px,4.6vw,58px)] font-extrabold leading-[1.05] tracking-[-.02em] text-slate-900">
+              <h1 className="mb-5 mt-6 font-title text-[clamp(42px,5vw,64px)] font-extrabold leading-[1.05] tracking-[-.02em] text-slate-900">
                 Descubrí tu estilo de comportamiento{' '}
                 <span className={QUADRANT_TEXT['disc-d']}>D</span>
                 <span className={QUADRANT_TEXT['disc-i']}>I</span>
@@ -313,13 +313,13 @@ export default function Landing() {
                 <span className={QUADRANT_TEXT['disc-c']}>C</span>.
               </h1>
 
-              <p className="mb-[26px] max-w-[52ch] text-lg leading-[1.7] text-slate-600 max-[560px]:text-base">
+              <p className="mb-8 max-w-[52ch] text-lg leading-[1.7] text-slate-600 max-[560px]:text-base">
                 Plataforma de evaluación basada en el modelo DISC de William Marston. Identificá tu perfil
                 conductual — Dominante, Influyente, Sensato o Correcto — y comprendé cómo interactuás con el
                 mundo.
               </p>
 
-              <div className="flex flex-wrap items-center gap-3.5">
+              <div className="flex flex-wrap items-center gap-4">
                 <a
                   onClick={openLogin('user')}
                   href="#"
@@ -336,27 +336,27 @@ export default function Landing() {
                 </a>
               </div>
 
-              <div className="mt-[18px] flex items-center gap-1.5 text-[13px] text-slate-500">
+              <div className="mt-6 flex items-center gap-1.5 text-[13px] text-slate-500">
                 La gente es diferente, pero es predeciblemente diferente
                 <SparklesIcon className="h-3.5 w-3.5 text-one-gold" />
               </div>
             </div>
 
             {/* Rueda de cuadrantes DISC */}
-            <div className="flex flex-col items-center justify-center rounded-[28px] border border-slate-200 bg-white p-8 shadow-[0_25px_60px_rgba(15,23,42,.10)]">
-                <span className="mb-2 text-sm font-semibold tracking-[.02em] text-slate-700">
+            <div className="flex flex-col items-center justify-center rounded-[28px] border border-slate-200 bg-white p-11 shadow-[0_25px_60px_rgba(15,23,42,.10)]">
+                <span className="mb-3 text-sm font-semibold tracking-[.02em] text-slate-700">
                   Activo / Extrovertido
                 </span>
-                <div className="flex w-full items-center justify-center gap-3">
+                <div className="flex w-full items-center justify-center gap-4">
                   <span className="text-sm font-semibold tracking-[.02em] text-slate-700">Tarea</span>
-                  <div className="relative aspect-square w-full max-w-[280px] overflow-hidden rounded-full shadow-[0_10px_35px_rgba(0,0,0,.18)]">
+                  <div className="relative aspect-square w-full max-w-[340px] overflow-hidden rounded-full shadow-[0_10px_35px_rgba(0,0,0,.18)]">
                     <div className="absolute inset-0 grid grid-cols-2 grid-rows-2">
                       {QUADRANTS.map((q) => (
                         <div
                           key={q.letter}
                           className={`flex items-center justify-center ${QUADRANT_BG[q.color]}`}
                         >
-                          <span className="font-title text-4xl font-extrabold leading-none text-white">
+                          <span className="font-title text-5xl font-extrabold leading-none text-white">
                             {q.letter}
                           </span>
                         </div>
@@ -367,7 +367,7 @@ export default function Landing() {
                   </div>
                   <span className="text-sm font-semibold tracking-[.02em] text-slate-700">Personas</span>
                 </div>
-                <span className="mt-2 text-sm font-semibold tracking-[.02em] text-slate-700">
+                <span className="mt-3 text-sm font-semibold tracking-[.02em] text-slate-700">
                   Pasivo / Reservado
                 </span>
               </div>

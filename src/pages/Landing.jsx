@@ -8,7 +8,7 @@ import LoginModal from '../components/LoginModal.jsx';
 /* ═══════════════════════════════════════
    Canvas de estrellas — lógica portada tal cual del index.html original
    ═══════════════════════════════════════ */
-function StarsCanvas() {
+function StarsCanvas({ theme = 'dark', bounded = false }) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -21,8 +21,13 @@ function StarsCanvas() {
     let rafId = 0;
 
     function resize() {
-      W = window.innerWidth;
-      H = document.documentElement.scrollHeight;
+      if (bounded && canvas.parentElement) {
+        W = canvas.parentElement.clientWidth;
+        H = canvas.parentElement.clientHeight;
+      } else {
+        W = window.innerWidth;
+        H = document.documentElement.scrollHeight;
+      }
       DPR = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = Math.floor(W * DPR);
       canvas.height = Math.floor(H * DPR);
@@ -42,6 +47,9 @@ function StarsCanvas() {
       }));
     }
 
+    const dotColor = theme === 'light' ? '30,41,59' : '254,254,255';
+    const maxAlpha = theme === 'light' ? 0.32 : 0.85;
+
     function draw() {
       ctx.clearRect(0, 0, W, H);
       const g = ctx.createRadialGradient(W * 0.75, H * 0.15, 0, W * 0.75, H * 0.15, Math.max(W, H) * 0.8);
@@ -59,10 +67,10 @@ function StarsCanvas() {
         if (s.y < -10) s.y = H + 10;
         if (s.y > H + 10) s.y = -10;
         s.a += Math.sin((s.x + s.y) * 0.002) * s.tw;
-        const alpha = Math.max(0.08, Math.min(0.85, s.a));
+        const alpha = Math.max(0.08, Math.min(maxAlpha, s.a));
         ctx.beginPath();
         ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(254,254,255,${alpha})`;
+        ctx.fillStyle = `rgba(${dotColor},${alpha})`;
         ctx.fill();
       }
       rafId = requestAnimationFrame(draw);
@@ -75,7 +83,7 @@ function StarsCanvas() {
       cancelAnimationFrame(rafId);
       window.removeEventListener('resize', resize);
     };
-  }, []);
+  }, [theme, bounded]);
 
   return <canvas ref={canvasRef} className="absolute inset-0 opacity-100" />;
 }
@@ -123,12 +131,29 @@ function Section({ id, children }) {
 }
 
 /* ═══ Datos de contenido (texto idéntico al original) ═══ */
-const FEATURES = [
-  { letter: 'D', name: 'Dominante', color: 'disc-d', text: 'Directo, decidido y orientado a resultados. Líder natural que busca el control y la acción.' },
-  { letter: 'I', name: 'Influyente', color: 'disc-i', text: 'Sociable, optimista y persuasivo. Comunicador nato que inspira y motiva a los demás.' },
-  { letter: 'S', name: 'Sensato', color: 'disc-s', text: 'Estable, empático y colaborativo. El pilar del equipo que valora la armonía y la lealtad.' },
-  { letter: 'C', name: 'Correcto', color: 'disc-c', text: 'Analítico, preciso y perfeccionista. El experto que busca la calidad y la exactitud.' },
+/* Orden en grilla 2x2 (D/I arriba, C/S abajo — mapeo correcto del modelo DISC:
+   fila superior = ritmo rápido, fila inferior = ritmo lento; columna izquierda =
+   tareas, columna derecha = personas). */
+const QUADRANTS = [
+  { letter: 'D', name: 'Dominante', color: 'disc-d' },
+  { letter: 'I', name: 'Influyente', color: 'disc-i' },
+  { letter: 'C', name: 'Correcto', color: 'disc-c' },
+  { letter: 'S', name: 'Sensato', color: 'disc-s' },
 ];
+
+const QUADRANT_BG = {
+  'disc-d': 'bg-disc-d',
+  'disc-i': 'bg-disc-i',
+  'disc-s': 'bg-disc-s',
+  'disc-c': 'bg-disc-c',
+};
+
+const QUADRANT_TEXT = {
+  'disc-d': 'text-disc-d',
+  'disc-i': 'text-disc-i',
+  'disc-s': 'text-disc-s',
+  'disc-c': 'text-disc-c',
+};
 
 const INFO_CARDS = [
   { icon: LightBulbIcon, title: 'Comportamiento predecible', text: 'Todos somos una mezcla de los 4 estilos, pero normalmente 1 o 2 destacan. Estos estilos dominantes determinan cómo reaccionamos de forma predecible.' },
@@ -169,40 +194,9 @@ const STEPS = [
   { n: '03', title: 'Obtenés tu informe', text: 'Se genera automáticamente tu perfil DISC con gráficos, análisis de tus estilos dominantes y recomendaciones.' },
 ];
 
-const FEATURE_ICO = {
-  'disc-d': 'border-disc-d/35 bg-disc-d/20',
-  'disc-i': 'border-disc-i/35 bg-disc-i/20',
-  'disc-s': 'border-disc-s/35 bg-disc-s/20',
-  'disc-c': 'border-disc-c/35 bg-disc-c/20',
-};
-const FEATURE_LETTER = {
-  'disc-d': 'text-disc-d',
-  'disc-i': 'text-disc-i',
-  'disc-s': 'text-disc-s',
-  'disc-c': 'text-disc-c',
-};
-
-/* Botón pill con glow (réplica de .btn primary/secondary) */
-function GlowButton({ variant = 'primary', onClick, children, className = '' }) {
-  const border = variant === 'primary' ? 'border-one-cyan/35' : 'border-one-pink/35';
-  const glow =
-    variant === 'primary'
-      ? 'before:bg-[radial-gradient(circle_at_20%_50%,rgba(107,225,227,.55),transparent_55%),radial-gradient(circle_at_80%_50%,rgba(107,225,227,.30),transparent_60%)]'
-      : 'before:bg-[radial-gradient(circle_at_20%_50%,rgba(225,123,215,.55),transparent_55%),radial-gradient(circle_at_80%_50%,rgba(225,123,215,.30),transparent_60%)]';
-  return (
-    <a
-      onClick={onClick}
-      href="#"
-      className={`relative inline-flex min-h-14 cursor-pointer select-none items-center justify-center gap-2.5 overflow-hidden rounded-full border ${border} bg-one-white/6 px-[26px] py-3.5 font-semibold tracking-[.02em] text-one-white shadow-[0_10px_40px_rgba(0,0,0,.35)] backdrop-blur-[12px] transition-all duration-[180ms] before:absolute before:-inset-0.5 before:rounded-full before:opacity-75 before:blur-[10px] before:content-[''] ${glow} hover:-translate-y-px hover:border-one-mist/36 hover:bg-one-white/[.085] hover:shadow-[0_16px_55px_rgba(0,0,0,.45)] active:translate-y-0 active:scale-[.99] max-[560px]:w-full ${className}`}
-    >
-      <span className="relative z-[1]">{children}</span>
-    </a>
-  );
-}
-
 function Eyebrow({ dotClass, children }) {
   return (
-    <div className="inline-flex items-center gap-2.5 rounded-full border border-one-mist/18 bg-one-white/6 px-3.5 py-2.5 text-sm tracking-[.04em] text-one-white/78 backdrop-blur-[10px] max-[560px]:text-[13px]">
+    <div className="inline-flex items-center gap-2.5 rounded-full border border-slate-200 bg-white px-3.5 py-2.5 text-sm tracking-[.04em] text-slate-700 shadow-[0_2px_10px_rgba(0,0,0,.04)] max-[560px]:text-[13px]">
       <span className={`h-2 w-2 rounded-full ${dotClass}`} aria-hidden="true" />
       {children}
     </div>
@@ -233,48 +227,39 @@ export default function Landing() {
 
   return (
     <>
-      {/* Background */}
+      {/* Background — atmósfera clara (gradientes + estrellas + hexágonos) para toda la Landing */}
       <div
         className="pointer-events-none fixed inset-0 -z-10"
         aria-hidden="true"
         style={{
           background:
-            'radial-gradient(1200px 700px at 70% 25%, rgba(225,123,215,.18), transparent 55%), radial-gradient(1100px 700px at 80% 60%, rgba(107,225,227,.14), transparent 55%), radial-gradient(900px 600px at 20% 70%, rgba(228,199,106,.10), transparent 60%), linear-gradient(180deg, #000000, #1a181d)',
+            'radial-gradient(1200px 700px at 75% 15%, rgba(225,123,215,.14), transparent 55%), radial-gradient(1100px 700px at 12% 60%, rgba(107,225,227,.14), transparent 55%), radial-gradient(900px 600px at 55% 95%, rgba(228,199,106,.12), transparent 60%), linear-gradient(180deg, #ffffff, #eef2f7)',
         }}
       >
-        <div
-          className="absolute -inset-[10%] opacity-95 blur-[18px]"
-          style={{
-            background:
-              'radial-gradient(circle at 25% 20%, rgba(107,225,227,.12), transparent 40%), radial-gradient(circle at 80% 35%, rgba(225,123,215,.12), transparent 38%), radial-gradient(circle at 55% 85%, rgba(228,199,106,.10), transparent 45%)',
-          }}
-        />
-        <StarsCanvas />
-        <div className="bg-hex-pattern absolute -inset-[20%] -rotate-[8deg] opacity-16 mix-blend-screen [filter:drop-shadow(0_0_12px_rgba(107,225,227,.15))]" />
+        <StarsCanvas theme="light" />
+        <div className="bg-hex-pattern-light absolute -inset-[20%] -rotate-[8deg] opacity-[0.05]" />
       </div>
 
       <div className="relative z-[1] flex min-h-screen min-h-dvh flex-col">
         {/* HEADER */}
         <header
           className={
-            'sticky top-0 z-[5] w-full px-[22px] pb-2 pt-[26px] backdrop-blur-[10px] max-[980px]:pt-[18px] ' +
-            (scrolled
-              ? 'border-b border-one-mist/10 bg-black/35 shadow-[0_10px_30px_rgba(0,0,0,.35)]'
-              : 'bg-gradient-to-b from-black/35 to-transparent')
+            'sticky top-0 z-[5] w-full px-[22px] pb-2 pt-[26px] backdrop-blur-[10px] transition-colors duration-300 max-[980px]:pt-[18px] ' +
+            (scrolled ? 'border-b border-slate-200 bg-white/85 shadow-[0_10px_30px_rgba(0,0,0,.06)]' : 'bg-white/60')
           }
         >
           <div className="mx-auto flex max-w-[1180px] items-center justify-between gap-[18px] max-[980px]:gap-3">
             <div className="flex select-none items-center gap-3" aria-label="Marca ONE">
               <div
-                className="relative h-[45px] w-[45px] shrink-0 overflow-hidden rounded-full bg-contain bg-center bg-no-repeat shadow-[0_0_0_1px_rgba(198,201,215,.18),0_0_40px_rgba(107,225,227,.18)] after:absolute after:inset-0 after:bg-[radial-gradient(circle_at_30%_30%,rgba(254,254,255,.14),transparent_55%)] after:content-['']"
+                className="relative h-[45px] w-[45px] shrink-0 overflow-hidden rounded-full bg-contain bg-center bg-no-repeat shadow-[0_0_0_1px_rgba(15,23,42,.10),0_0_30px_rgba(107,225,227,.20)] after:absolute after:inset-0 after:bg-[radial-gradient(circle_at_30%_30%,rgba(254,254,255,.14),transparent_55%)] after:content-['']"
                 style={{ backgroundImage: "url('/img/one-iconocolor.png')" }}
                 aria-hidden="true"
               />
               <div>
-                <div className="font-title text-[22px] font-extrabold leading-[1.1] tracking-[.04em] max-[560px]:text-lg">
+                <div className="font-title text-[22px] font-extrabold leading-[1.1] tracking-[.04em] text-slate-900 max-[560px]:text-lg">
                   ONE
                 </div>
-                <span className="mt-0.5 block text-xs font-medium tracking-[.02em] text-one-mist/85">
+                <span className="mt-0.5 block text-xs font-medium tracking-[.02em] text-slate-500">
                   Evaluación DISC
                 </span>
               </div>
@@ -290,7 +275,7 @@ export default function Landing() {
                 <a
                   key={href}
                   href={href}
-                  className="rounded-full px-3 py-2.5 font-medium tracking-[.02em] text-one-white/78 transition-colors hover:bg-one-white/6 hover:text-one-white"
+                  className="rounded-full px-3 py-2.5 font-medium tracking-[.02em] text-slate-600 transition-colors hover:bg-slate-900/5 hover:text-slate-900"
                 >
                   {label}
                 </a>
@@ -301,9 +286,9 @@ export default function Landing() {
               <a
                 onClick={openLogin('admin')}
                 href="#"
-                className="relative inline-flex min-h-[46px] cursor-pointer select-none items-center justify-center gap-2.5 overflow-hidden rounded-full border border-one-pink/35 bg-one-white/6 px-[18px] py-2.5 font-semibold tracking-[.02em] text-one-white shadow-[0_10px_40px_rgba(0,0,0,.25)] backdrop-blur-[12px] transition-all duration-[180ms] before:absolute before:-inset-0.5 before:rounded-full before:opacity-75 before:blur-[10px] before:content-[''] before:bg-[radial-gradient(circle_at_20%_50%,rgba(225,123,215,.55),transparent_55%),radial-gradient(circle_at_80%_50%,rgba(225,123,215,.30),transparent_60%)] hover:-translate-y-px hover:border-one-mist/36 hover:bg-one-white/[.085] hover:shadow-[0_16px_55px_rgba(0,0,0,.35)]"
+                className="inline-flex min-h-[46px] cursor-pointer select-none items-center justify-center gap-2.5 rounded-full border border-slate-300 bg-white px-[18px] py-2.5 font-semibold tracking-[.02em] text-slate-900 shadow-[0_6px_20px_rgba(0,0,0,.08)] transition-all duration-[180ms] hover:-translate-y-px hover:border-slate-400"
               >
-                <span className="relative z-[1]">Acceder como Admin</span>
+                Acceder como Admin
               </a>
             </div>
           </div>
@@ -312,99 +297,91 @@ export default function Landing() {
         <main className="w-full flex-1 px-[22px] pb-[60px]">
           {/* HERO */}
           <section
-            className="mx-auto grid w-full max-w-[1180px] grid-cols-[1.05fr_.95fr] items-center gap-7 py-[22px] max-[980px]:grid-cols-1 min-h-[calc(100vh-100px)]"
             id="inicio"
+            className="mx-auto grid w-full max-w-[1180px] grid-cols-[1.05fr_.95fr] items-center gap-10 py-12 max-[980px]:grid-cols-1 max-[980px]:py-8"
           >
-            <div className="py-3.5">
-              <Eyebrow dotClass="bg-one-cyan shadow-[0_0_18px_rgba(107,225,227,.55)]">
+            <div>
+              <span className="inline-flex items-center gap-2 rounded-full border border-one-cyan/30 bg-white px-3.5 py-2 text-sm font-medium tracking-[.02em] text-slate-700 shadow-[0_2px_10px_rgba(0,0,0,.04)]">
                 Evaluación de comportamiento DISC
-              </Eyebrow>
+              </span>
 
-              <h1 className="mb-3.5 mt-[18px] font-title text-[clamp(42px,5vw,66px)] font-extrabold leading-[1.05] tracking-[-.02em] [text-shadow:0_10px_40px_rgba(0,0,0,.55)]">
-                Descubrí tu estilo de
-                <br />
-                <span className="bg-gradient-to-r from-one-cyan to-one-cyan/65 bg-clip-text text-transparent">
-                  comportamiento
-                </span>{' '}
-                <span className="bg-gradient-to-r from-one-pink to-one-pink/65 bg-clip-text text-transparent">
-                  DISC.
-                </span>
+              <h1 className="mb-3.5 mt-[18px] font-title text-[clamp(38px,4.6vw,58px)] font-extrabold leading-[1.05] tracking-[-.02em] text-slate-900">
+                Descubrí tu estilo de comportamiento{' '}
+                <span className={QUADRANT_TEXT['disc-d']}>D</span>
+                <span className={QUADRANT_TEXT['disc-i']}>I</span>
+                <span className={QUADRANT_TEXT['disc-s']}>S</span>
+                <span className={QUADRANT_TEXT['disc-c']}>C</span>.
               </h1>
 
-              <p className="mb-[26px] max-w-[52ch] text-lg leading-[1.7] text-one-mist/92 max-[560px]:text-base">
+              <p className="mb-[26px] max-w-[52ch] text-lg leading-[1.7] text-slate-600 max-[560px]:text-base">
                 Plataforma de evaluación basada en el modelo DISC de William Marston. Identificá tu perfil
                 conductual — Dominante, Influyente, Sensato o Correcto — y comprendé cómo interactuás con el
                 mundo.
               </p>
 
               <div className="flex flex-wrap items-center gap-3.5">
-                <GlowButton variant="primary" onClick={openLogin('user')}>
-                  Realizar mi Evaluación DISC
-                </GlowButton>
-                <GlowButton variant="secondary" onClick={openLogin('admin')}>
+                <a
+                  onClick={openLogin('user')}
+                  href="#"
+                  className="inline-flex min-h-14 cursor-pointer select-none items-center justify-center rounded-full bg-slate-900 px-[26px] py-3.5 font-semibold tracking-[.02em] text-white shadow-[0_10px_30px_rgba(0,0,0,.25)] transition-all duration-[180ms] hover:-translate-y-px hover:bg-slate-800 active:translate-y-0 max-[560px]:w-full"
+                >
+                  Realizar mi Evaluación DISC →
+                </a>
+                <a
+                  onClick={openLogin('admin')}
+                  href="#"
+                  className="inline-flex min-h-14 cursor-pointer select-none items-center justify-center rounded-full border border-slate-300 bg-white px-[26px] py-3.5 font-semibold tracking-[.02em] text-slate-900 transition-all duration-[180ms] hover:-translate-y-px hover:border-slate-400 active:translate-y-0 max-[560px]:w-full"
+                >
                   Acceder como Admin
-                </GlowButton>
+                </a>
               </div>
 
-              <div className="mt-[18px] flex items-center gap-1.5 text-[13px] text-one-slate/95">
+              <div className="mt-[18px] flex items-center gap-1.5 text-[13px] text-slate-500">
                 La gente es diferente, pero es predeciblemente diferente
                 <SparklesIcon className="h-3.5 w-3.5 text-one-gold" />
               </div>
             </div>
 
-            {/* Visual panel */}
-            <div
-              className="relative flex min-h-[520px] items-center justify-center overflow-hidden rounded-[28px] border border-one-mist/18 shadow-[0_18px_60px_rgba(0,0,0,.55)] backdrop-blur-[16px] after:absolute after:inset-0 after:content-[''] after:bg-[radial-gradient(circle_at_70%_30%,rgba(254,254,255,.12),transparent_45%)] after:pointer-events-none max-[980px]:min-h-[460px]"
-              style={{
-                background:
-                  'radial-gradient(900px 600px at 70% 35%, rgba(225,123,215,.20), transparent 55%), radial-gradient(900px 600px at 45% 60%, rgba(107,225,227,.18), transparent 60%), linear-gradient(180deg, rgba(254,254,255,.06), rgba(26,24,29,.55))',
-              }}
-            >
-              <div
-                className="pointer-events-none absolute inset-0 opacity-90 mix-blend-screen"
-                aria-hidden="true"
-                style={{
-                  background:
-                    'linear-gradient(to right, rgba(107,225,227,0), rgba(107,225,227,.22), rgba(107,225,227,0)) 10% 35% / 60% 1px no-repeat, linear-gradient(to right, rgba(225,123,215,0), rgba(225,123,215,.18), rgba(225,123,215,0)) 15% 62% / 70% 1px no-repeat, radial-gradient(circle at 85% 78%, rgba(228,199,106,.10), transparent 42%)',
-                }}
-              />
-
-              <div className="relative z-[1] grid w-[min(640px,92%)] grid-cols-2 gap-[18px] p-[26px] max-[980px]:w-[min(720px,96%)] max-[560px]:grid-cols-1 max-[560px]:p-[18px]">
-                {FEATURES.map((f) => (
-                  <article
-                    key={f.letter}
-                    className="min-h-[140px] rounded-[18px] border border-one-mist/20 bg-one-white/6 p-[22px] pb-5 shadow-[0_18px_60px_rgba(0,0,0,.35)] backdrop-blur-[14px] transition-all duration-[180ms] hover:-translate-y-0.5 hover:border-one-mist/32 hover:bg-one-white/[.075] hover:shadow-[0_22px_70px_rgba(0,0,0,.45)]"
-                  >
-                    <div className="mb-2.5 flex items-center gap-3">
-                      <div
-                        className={`flex h-10 w-10 flex-none items-center justify-center rounded-[14px] border shadow-[0_0_0_1px_rgba(0,0,0,.12),0_12px_30px_rgba(0,0,0,.22)] ${FEATURE_ICO[f.color]}`}
-                        aria-hidden="true"
-                      >
-                        <span className={`font-title text-xl font-extrabold leading-none ${FEATURE_LETTER[f.color]}`}>
-                          {f.letter}
-                        </span>
-                      </div>
-                      <h3 className="m-0 font-title text-lg font-bold leading-[1.2] tracking-[-.01em]">{f.name}</h3>
+            {/* Rueda de cuadrantes DISC */}
+            <div className="flex flex-col items-center justify-center rounded-[28px] border border-slate-200 bg-white p-8 shadow-[0_25px_60px_rgba(15,23,42,.10)]">
+                <span className="mb-2 text-sm font-semibold tracking-[.02em] text-slate-700">
+                  Activo / Extrovertido
+                </span>
+                <div className="flex w-full items-center justify-center gap-3">
+                  <span className="text-sm font-semibold tracking-[.02em] text-slate-700">Tarea</span>
+                  <div className="relative aspect-square w-full max-w-[280px] overflow-hidden rounded-full shadow-[0_10px_35px_rgba(0,0,0,.18)]">
+                    <div className="absolute inset-0 grid grid-cols-2 grid-rows-2">
+                      {QUADRANTS.map((q) => (
+                        <div
+                          key={q.letter}
+                          className={`flex items-center justify-center ${QUADRANT_BG[q.color]}`}
+                        >
+                          <span className="font-title text-4xl font-extrabold leading-none text-white">
+                            {q.letter}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                    <p className="m-0 text-sm leading-[1.6] text-one-mist/88">{f.text}</p>
-                  </article>
-                ))}
+                    <div className="pointer-events-none absolute inset-y-0 left-1/2 w-[3px] -translate-x-1/2 bg-white" />
+                    <div className="pointer-events-none absolute inset-x-0 top-1/2 h-[3px] -translate-y-1/2 bg-white" />
+                  </div>
+                  <span className="text-sm font-semibold tracking-[.02em] text-slate-700">Personas</span>
+                </div>
+                <span className="mt-2 text-sm font-semibold tracking-[.02em] text-slate-700">
+                  Pasivo / Reservado
+                </span>
               </div>
-            </div>
           </section>
 
           {/* ¿QUÉ ES DISC? */}
           <Section id="que-es-disc">
             <div className="mb-12">
               <Eyebrow dotClass="bg-one-cyan shadow-[0_0_18px_rgba(107,225,227,.55)]">Desde 1926</Eyebrow>
-              <h2 className="mb-3.5 mt-4 font-title text-[clamp(30px,3.5vw,46px)] font-extrabold leading-[1.1] tracking-[-.02em]">
+              <h2 className="mb-3.5 mt-4 font-title text-[clamp(30px,3.5vw,46px)] font-extrabold leading-[1.1] tracking-[-.02em] text-slate-900">
                 ¿Qué es el modelo{' '}
-                <span className="bg-gradient-to-r from-one-cyan to-one-cyan/65 bg-clip-text text-transparent">
-                  DISC
-                </span>
-                ?
+                DISC?
               </h2>
-              <p className="m-0 max-w-[62ch] text-[17px] leading-[1.7] text-one-mist/85">
+              <p className="m-0 max-w-[62ch] text-[17px] leading-[1.7] text-slate-600">
                 DISC es una herramienta de evaluación del comportamiento humano creada por William Marston en
                 1926. No mide personalidad ni inteligencia — identifica patrones predecibles de conducta que nos
                 ayudan a entender cómo actuamos, nos comunicamos y reaccionamos ante distintas situaciones.
@@ -415,11 +392,11 @@ export default function Landing() {
               {INFO_CARDS.map((c) => (
                 <article
                   key={c.title}
-                  className="rounded-[18px] border border-one-mist/25 bg-one-white/8 p-7 px-6 backdrop-blur-[14px] transition-all duration-[180ms] hover:-translate-y-[3px] hover:border-one-mist/35 hover:bg-one-white/12"
+                  className="rounded-[18px] border border-slate-300 bg-white p-7 px-6 shadow-[0_8px_28px_rgba(15,23,42,.10)] transition-all duration-[180ms] hover:-translate-y-[3px] hover:border-slate-400 hover:shadow-[0_14px_38px_rgba(15,23,42,.16)]"
                 >
                   <c.icon className="mb-3.5 h-7 w-7 text-one-cyan" />
-                  <h3 className="mb-2.5 mt-0 font-title text-lg font-bold">{c.title}</h3>
-                  <p className="m-0 text-sm leading-[1.65] text-one-mist/85">{c.text}</p>
+                  <h3 className="mb-2.5 mt-0 font-title text-lg font-bold text-slate-900">{c.title}</h3>
+                  <p className="m-0 text-sm leading-[1.65] text-slate-600">{c.text}</p>
                 </article>
               ))}
             </div>
@@ -429,14 +406,10 @@ export default function Landing() {
           <Section id="estilos">
             <div className="mb-12">
               <Eyebrow dotClass="bg-one-pink shadow-[0_0_18px_rgba(225,123,215,.55)]">Los cuatro estilos</Eyebrow>
-              <h2 className="mb-3.5 mt-4 font-title text-[clamp(30px,3.5vw,46px)] font-extrabold leading-[1.1] tracking-[-.02em]">
-                Conocé cada{' '}
-                <span className="bg-gradient-to-r from-one-pink to-one-pink/65 bg-clip-text text-transparent">
-                  perfil
-                </span>{' '}
-                en detalle
+              <h2 className="mb-3.5 mt-4 font-title text-[clamp(30px,3.5vw,46px)] font-extrabold leading-[1.1] tracking-[-.02em] text-slate-900">
+                Conocé cada perfil en detalle
               </h2>
-              <p className="m-0 max-w-[62ch] text-[17px] leading-[1.7] text-one-mist/85">
+              <p className="m-0 max-w-[62ch] text-[17px] leading-[1.7] text-slate-600">
                 Cada estilo tiene fortalezas únicas, un miedo básico inconsciente y una forma particular de ver el
                 mundo. Entenderlos te permite comunicarte mejor y evitar conflictos.
               </p>
@@ -446,7 +419,7 @@ export default function Landing() {
               {STYLE_CARDS.map((s) => (
                 <article
                   key={s.letter}
-                  className={`overflow-hidden rounded-[18px] border border-one-mist/25 bg-one-white/8 backdrop-blur-[14px] transition-all duration-[180ms] hover:-translate-y-[3px] ${s.hover}`}
+                  className="overflow-hidden rounded-[18px] border border-slate-300 bg-white shadow-[0_8px_28px_rgba(15,23,42,.10)] transition-all duration-[180ms] hover:-translate-y-[3px] hover:border-slate-400 hover:shadow-[0_14px_38px_rgba(15,23,42,.16)]"
                 >
                   <div className="flex items-center gap-3.5 p-6 pb-[18px] pt-[22px]">
                     <div
@@ -455,25 +428,25 @@ export default function Landing() {
                       {s.letter}
                     </div>
                     <div>
-                      <h3 className="m-0 font-title text-xl font-bold">{s.name}</h3>
-                      <p className="mb-0 mt-0.5 text-[13px] text-one-slate">{s.aka}</p>
+                      <h3 className="m-0 font-title text-xl font-bold text-slate-900">{s.name}</h3>
+                      <p className="mb-0 mt-0.5 text-[13px] text-slate-500">{s.aka}</p>
                     </div>
                   </div>
                   <div className="px-6 pb-6">
                     <div className="mb-2.5 mr-4 inline-flex items-center gap-1.5 text-[13px]">
-                      <span className="text-one-mist/60">Población</span>
+                      <span className="text-slate-500">Población</span>
                       <span className={`font-bold ${s.stat}`}>{s.poblacion}</span>
                     </div>
                     <div className="mb-2.5 mr-4 inline-flex items-center gap-1.5 text-[13px]">
-                      <span className="text-one-mist/60">Ritmo</span>
-                      <span className="font-bold text-one-white">{s.ritmo}</span>
+                      <span className="text-slate-500">Ritmo</span>
+                      <span className="font-bold text-slate-900">{s.ritmo}</span>
                     </div>
                     <div className="mb-2.5 mr-4 inline-flex items-center gap-1.5 text-[13px]">
-                      <span className="text-one-mist/60">Enfoque</span>
-                      <span className="font-bold text-one-white">{s.enfoque}</span>
+                      <span className="text-slate-500">Enfoque</span>
+                      <span className="font-bold text-slate-900">{s.enfoque}</span>
                     </div>
-                    <p className="mb-3.5 mt-2 text-sm leading-[1.65] text-one-mist/85">{s.desc}</p>
-                    <div className="rounded-[10px] border border-one-mist/12 bg-one-white/4 px-3.5 py-2.5 text-[13px] leading-[1.5] text-one-mist/75">
+                    <p className="mb-3.5 mt-2 text-sm leading-[1.65] text-slate-600">{s.desc}</p>
+                    <div className="rounded-[10px] border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-[13px] leading-[1.5] text-slate-600">
                       <span className="mr-1 font-bold text-one-pink">Miedo básico:</span>
                       {s.fear}
                     </div>
@@ -487,14 +460,10 @@ export default function Landing() {
           <Section id="como-funciona">
             <div className="mb-12">
               <Eyebrow dotClass="bg-one-gold shadow-[0_0_18px_rgba(228,199,106,.55)]">Simple y rápido</Eyebrow>
-              <h2 className="mb-3.5 mt-4 font-title text-[clamp(30px,3.5vw,46px)] font-extrabold leading-[1.1] tracking-[-.02em]">
-                ¿Cómo funciona la{' '}
-                <span className="bg-gradient-to-r from-one-gold to-one-gold/65 bg-clip-text text-transparent">
-                  evaluación
-                </span>
-                ?
+              <h2 className="mb-3.5 mt-4 font-title text-[clamp(30px,3.5vw,46px)] font-extrabold leading-[1.1] tracking-[-.02em] text-slate-900">
+                ¿Cómo funciona la evaluación?
               </h2>
-              <p className="m-0 max-w-[62ch] text-[17px] leading-[1.7] text-one-mist/85">
+              <p className="m-0 max-w-[62ch] text-[17px] leading-[1.7] text-slate-600">
                 El test DISC se completa en 7-10 minutos y genera un informe detallado con tu perfil de
                 comportamiento y gráficos de tus estilos dominantes.
               </p>
@@ -509,21 +478,25 @@ export default function Landing() {
                       aria-hidden="true"
                     />
                   )}
-                  <article className="flex-1 rounded-[18px] border border-one-mist/25 bg-one-white/8 p-7 px-6 backdrop-blur-[14px] transition-all duration-[180ms] hover:-translate-y-[3px] hover:bg-one-white/12 max-[980px]:w-full">
-                    <div className="mb-3.5 bg-gradient-to-br from-one-cyan to-one-pink bg-clip-text font-title text-4xl font-extrabold leading-none text-transparent">
+                  <article className="flex-1 rounded-[18px] border border-slate-300 bg-white p-7 px-6 shadow-[0_8px_28px_rgba(15,23,42,.10)] transition-all duration-[180ms] hover:-translate-y-[3px] hover:border-slate-400 hover:shadow-[0_14px_38px_rgba(15,23,42,.16)] max-[980px]:w-full">
+                    <div className="mb-3.5 font-title text-4xl font-extrabold leading-none text-slate-300">
                       {step.n}
                     </div>
-                    <h3 className="mb-2.5 mt-0 font-title text-lg font-bold">{step.title}</h3>
-                    <p className="m-0 text-sm leading-[1.65] text-one-mist/85">{step.text}</p>
+                    <h3 className="mb-2.5 mt-0 font-title text-lg font-bold text-slate-900">{step.title}</h3>
+                    <p className="m-0 text-sm leading-[1.65] text-slate-600">{step.text}</p>
                   </article>
                 </div>
               ))}
             </div>
 
             <div className="text-center">
-              <GlowButton variant="primary" onClick={openLogin('user')}>
+              <a
+                onClick={openLogin('user')}
+                href="#"
+                className="inline-flex min-h-14 cursor-pointer select-none items-center justify-center rounded-full bg-slate-900 px-[26px] py-3.5 font-semibold tracking-[.02em] text-white shadow-[0_10px_30px_rgba(0,0,0,.25)] transition-all duration-[180ms] hover:-translate-y-px hover:bg-slate-800 active:translate-y-0"
+              >
                 Comenzar mi Evaluación DISC
-              </GlowButton>
+              </a>
             </div>
           </Section>
         </main>

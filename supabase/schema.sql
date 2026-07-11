@@ -6,6 +6,18 @@
 -- Ejecutar en: Supabase Dashboard → SQL Editor → New query → pegar → Run
 -- ═══════════════════════════════════════════════════════════════
 
+-- ── TABLA: superadmins (cuentas con acceso al panel de SuperAdmin) ──
+-- Reemplaza al superadmin fijo hardcodeado (superadmin/admin123 en auth.js):
+-- ahora se puede tener más de una cuenta con acceso al nivel superior.
+create table if not exists superadmins (
+  id         uuid primary key default gen_random_uuid(),
+  usuario    text not null unique,
+  password   text not null,
+  email      text not null default '',
+  fecha_alta timestamptz not null default now(),
+  estado     text not null default 'activo'      -- activo | inactivo
+);
+
 -- ── TABLA: admins (réplica de la hoja "Admins") ─────────────────
 create table if not exists admins (
   id                uuid primary key default gen_random_uuid(),
@@ -73,10 +85,12 @@ on conflict (id) do nothing;
 -- ("Cualquier persona") y la autorización vivía en la lógica de la app.
 -- Se habilita RLS con políticas abiertas para anon (mismo nivel de confianza
 -- que la webapp GAS original). Endurecer en una fase 2 si se necesita.
-alter table admins     enable row level security;
-alter table usuarios   enable row level security;
-alter table respuestas enable row level security;
+alter table superadmins enable row level security;
+alter table admins      enable row level security;
+alter table usuarios    enable row level security;
+alter table respuestas  enable row level security;
 
+create policy "anon full access superadmins" on superadmins for all to anon using (true) with check (true);
 create policy "anon full access admins"     on admins     for all to anon using (true) with check (true);
 create policy "anon full access usuarios"   on usuarios   for all to anon using (true) with check (true);
 create policy "anon full access respuestas" on respuestas for all to anon using (true) with check (true);

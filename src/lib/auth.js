@@ -13,24 +13,39 @@ import { Session } from './session.js';
 export const Auth = {
   async login(usuario, password, rol) {
     try {
-      // ─── 1. SUPERADMIN LOCAL (FIJO) ────────────────────────────
+      // ─── 1. SUPERADMIN (tabla superadmins) ─────────────────────
       if (rol === CONFIG.roles.SUPERADMIN) {
-        const superadmin = {
-          usuario: 'superadmin',
-          password: 'admin123',
-          email: 'superadmin@local',
-        };
-        if (usuario === superadmin.usuario && password === superadmin.password) {
-          Session.set({
-            usuario: superadmin.usuario,
-            email: superadmin.email,
-            password: superadmin.password,
-            rol: CONFIG.roles.SUPERADMIN,
-            packStatus: '01',
-          });
-          return { success: true };
+        const { data: superadmins, error } = await supabase
+          .from('superadmins')
+          .select('*')
+          .eq('usuario', usuario.trim());
+
+        if (error) {
+          console.error('Error leyendo superadmins:', error);
+          return { success: false, message: 'Error leyendo superadmins' };
         }
-        return { success: false, message: 'Credenciales inválidas' };
+
+        const superadminEncontrado = (superadmins || []).find(
+          (row) => String(row.password).trim() === String(password).trim()
+        );
+
+        if (!superadminEncontrado) {
+          return { success: false, message: 'Credenciales inválidas' };
+        }
+
+        if (String(superadminEncontrado.estado || '').trim().toLowerCase() === 'inactivo') {
+          return { success: false, message: 'Tu cuenta de superadmin está inactiva' };
+        }
+
+        Session.set({
+          usuario: String(superadminEncontrado.usuario),
+          email: String(superadminEncontrado.email || ''),
+          password: String(superadminEncontrado.password),
+          rol: CONFIG.roles.SUPERADMIN,
+          packStatus: '01',
+          superadminId: superadminEncontrado.id,
+        });
+        return { success: true };
       }
 
       // ─── 2. ADMIN ──────────────────────────────────────────────

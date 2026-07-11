@@ -1,0 +1,84 @@
+@import 'tailwindcss';
+
+/* ═══ Tokens de marca ONE (de Marca.js + style.css originales) ═══ */
+@theme {
+  --color-one-black: #000000;
+  --color-one-ink: #1a181d;
+  --color-one-white: #fefeff;
+  --color-one-pink: #e17bd7;
+  --color-one-cyan: #6be1e3;
+  --color-one-gold: #e4c76a;
+  --color-one-slate: #a4a8c0;
+  --color-one-mist: #c6c9d7;
+
+  /* Colores DISC (de style.css) */
+  --color-disc-d: #e05454;
+  --color-disc-i: #e4c76a;
+  --color-disc-s: #4ecb71;
+  --color-disc-c: #5498e0;
+
+  --font-title: 'Exo 2', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --font-sub: 'Futura', 'Futura PT', 'Avenir', 'Trebuchet MS', 'Segoe UI', Arial, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: #e17bd7 #000000;
+  background-color: #000000;
+  /* Sin "height: 100%" ni "overflow-x: hidden" acá: esa combinación fuerza
+     (por especificación CSS) overflow-y a "auto", convirtiendo <html> en su
+     propia caja de scroll interna limitada al alto de la ventana — bloquea
+     el scroll normal de la página. El overflow-x:hidden de <body> alcanza. */
+  overscroll-behavior-y: none;
+}
+
+body {
+  min-height: 100vh;
+  min-height: 100dvh; /* altura real en mobile: no se corta con la barra de direcciones */
+  margin: 0;
+  /* Sin background-color propio: el de <html> ya cubre el canvas/FOUC.
+     Si el body TAMBIÉN lo declara, el navegador oscurece de más los fondos
+     semitransparentes con -z-10 (probado: sacarlo restaura los colores). */
+  color: #fefeff;
+  font-family: var(--font-sub);
+  overflow-x: hidden;
+  overscroll-behavior-y: none;
+}
+
+/* Patrón hexagonal del fondo (data-URI, igual al original) */
+@utility bg-hex-pattern {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='150' viewBox='0 0 260 150'%3E%3Cg fill='none' stroke='%23c6c9d7' stroke-opacity='0.85' stroke-width='1'%3E%3Cpath d='M50 20l20-12 20 12v24l-20 12-20-12z'/%3E%3Cpath d='M120 20l20-12 20 12v24l-20 12-20-12z'/%3E%3Cpath d='M190 20l20-12 20 12v24l-20 12-20-12z'/%3E%3Cpath d='M85 55l20-12 20 12v24l-20 12-20-12z'/%3E%3Cpath d='M155 55l20-12 20 12v24l-20 12-20-12z'/%3E%3Cpath d='M50 90l20-12 20 12v24l-20 12-20-12z'/%3E%3Cpath d='M120 90l20-12 20 12v24l-20 12-20-12z'/%3E%3Cpath d='M190 90l20-12 20 12v24l-20 12-20-12z'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 260px 150px;
+  background-repeat: repeat;
+}
+
+/* Animación de secciones del Test (réplica del original) */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Scrollbar (réplica del original) */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+::-webkit-scrollbar-track {
+  background: #000000;
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #6be1e3, #e17bd7);
+  border-radius: 99px;
+  border: 3px solid #000000;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  border: 2px solid #000000;
+}

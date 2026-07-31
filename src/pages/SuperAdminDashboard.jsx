@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircleIcon } from '@heroicons/react/24/solid';
-import { ArrowUpTrayIcon, ArrowDownTrayIcon, XCircleIcon } from '@heroicons/react/24/outline';
+import { ArrowUpTrayIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import { CONFIG } from '../lib/config.js';
 import { Session } from '../lib/session.js';
 import { Auth } from '../lib/auth.js';
@@ -12,6 +12,7 @@ import {
   StatusBadge,
   LoadingOverlay,
   ConfirmModal,
+  ColumnMapModal,
   useToasts,
   sanitizeText,
 } from './AdminDashboard.jsx';
@@ -116,6 +117,7 @@ export default function SuperAdminDashboard() {
   const [editLogoUploading, setEditLogoUploading] = useState(false);
   const [bulkUploading, setBulkUploading] = useState(false);
   const [bulkResult, setBulkResult] = useState(null); // { creados, errores: [{usuario, motivo}] }
+  const [csvMapping, setCsvMapping] = useState(null); // { headers, dataRows } mientras se elige el mapeo
   const { showToast, ToastContainer } = useToasts();
 
   async function loadAdmins() {
@@ -268,90 +270,16 @@ export default function SuperAdminDashboard() {
     return fields.map((f) => f.trim());
   }
 
-  const CSV_HEADER_ALIASES = {
-    usuario: ['usuario', 'usuario_admin', 'user'],
-    password: ['password', 'contraseña', 'contrasena', 'pass'],
-    email: ['email', 'correo', 'email_admin'],
-    empresa: ['empresa', 'nombre_empresa', 'name_empresa'],
-    pack: ['pack', 'pack_status', 'pack_lider'],
-  };
+  const ADMINS_FIELDS_CONFIG = [
+    { key: 'usuario', label: 'Usuario', required: true, aliases: ['usuario', 'usuario_admin', 'user'] },
+    { key: 'password', label: 'Contraseña', required: true, aliases: ['password', 'contraseña', 'contrasena', 'pass'] },
+    { key: 'email', label: 'Email', required: true, aliases: ['email', 'correo', 'email_admin'] },
+    { key: 'empresa', label: 'Empresa', required: true, aliases: ['empresa', 'nombre_empresa', 'name_empresa'] },
+    { key: 'pack', label: 'Pack Líder', required: false, aliases: ['pack', 'pack_status', 'pack_lider'] },
+  ];
 
-  function resolveHeaderIndexes(headerRow) {
-    const normalized = headerRow.map((h) => h.toLowerCase().trim());
-    const indexes = {};
-    for (const [field, aliases] of Object.entries(CSV_HEADER_ALIASES)) {
-      const idx = normalized.findIndex((h) => aliases.includes(h));
-      if (idx !== -1) indexes[field] = idx;
-    }
-    return indexes;
-  }
-
-  /** Convierte el texto crudo del CSV en filas válidas + filas con error, sin tocar la base. */
-  function parseAdminsCsv(text) {
-    const lines = text
-      .replace(/^﻿/, '')
-      .split(/\r\n|\n/)
-      .filter((l) => l.trim() !== '');
-
-    if (lines.length < 2) {
-      return { rows: [], errors: [{ line: 0, motivo: 'El archivo está vacío o no tiene filas de datos' }] };
-    }
-
-    const indexes = resolveHeaderIndexes(parseCsvLine(lines[0]));
-    const faltantes = ['usuario', 'password', 'email', 'empresa'].filter((f) => indexes[f] === undefined);
-    if (faltantes.length > 0) {
-      return {
-        rows: [],
-        errors: [{ line: 0, motivo: `Faltan columnas obligatorias en el CSV: ${faltantes.join(', ')}` }],
-      };
-    }
-
-    const rows = [];
-    const errors = [];
-    const usuariosVistos = new Set();
-
-    for (let i = 1; i < lines.length; i++) {
-      const cols = parseCsvLine(lines[i]);
-      const usuario = (cols[indexes.usuario] || '').trim();
-      const password = (cols[indexes.password] || '').trim();
-      const email = (cols[indexes.email] || '').trim();
-      const empresa = (cols[indexes.empresa] || '').trim();
-      const packRaw = (indexes.pack !== undefined ? cols[indexes.pack] : '').trim().toLowerCase();
-      const pack = ['si', 'sí', '1', '01', 'true'].includes(packRaw);
-      const lineNum = i + 1;
-
-      if (!usuario || !password || !email || !empresa) {
-        errors.push({ line: lineNum, usuario, motivo: 'Faltan campos obligatorios (usuario/contraseña/email/empresa)' });
-        continue;
-      }
-      const usuarioLower = usuario.toLowerCase();
-      if (usuariosVistos.has(usuarioLower)) {
-        errors.push({ line: lineNum, usuario, motivo: 'Usuario repetido dentro del mismo archivo' });
-        continue;
-      }
-      if (admins.some((a) => a.usuario.toLowerCase() === usuarioLower)) {
-        errors.push({ line: lineNum, usuario, motivo: 'Ese usuario ya existe en la plataforma' });
-        continue;
-      }
-      usuariosVistos.add(usuarioLower);
-      rows.push({ usuario, password, email, empresa, pack });
-    }
-
-    return { rows, errors };
-  }
-
-  function downloadCsvTemplate() {
-    const contenido =
-      'usuario,password,email,empresa,pack\nempresa01,contrasena123,contacto@empresa.com,Empresa Ejemplo SA,no\n';
-    const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'plantilla_administradores.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
+  /** El usuario sube CUALQUIER CSV (sin formato fijo) — acá solo lo leemos
+   * en filas crudas; el mapeo de columnas lo elige él en el modal siguiente. */
   function handleBulkCsvFile(e) {
     const file = e.target.files?.[0];
     e.target.value = '';
@@ -359,64 +287,113 @@ export default function SuperAdminDashboard() {
 
     const reader = new FileReader();
     reader.onload = () => {
-      const { rows, errors } = parseAdminsCsv(String(reader.result || ''));
+      const lines = String(reader.result || '')
+        .replace(/^﻿/, '')
+        .split(/\r\n|\n/)
+        .filter((l) => l.trim() !== '');
 
-      if (rows.length === 0) {
-        showToast(
-          errors[0]?.motivo ? `No se creó nada: ${errors[0].motivo}` : 'El archivo no tiene filas válidas',
-          'error'
-        );
-        setBulkResult({ creados: 0, errores: errors.map((er) => ({ usuario: er.usuario || `línea ${er.line}`, motivo: er.motivo })) });
+      if (lines.length < 2) {
+        showToast('El archivo está vacío o no tiene filas de datos', 'error');
         return;
       }
 
-      const resumenErrores =
-        errors.length > 0
-          ? `<br/><span class="text-yellow-400">${errors.length} fila(s) se van a omitir por error (usuario duplicado o datos faltantes).</span>`
-          : '';
-
-      setConfirm({
-        title: 'Carga Masiva de Administradores',
-        message: `Se van a crear <strong>${rows.length}</strong> administrador(es) nuevo(s) a partir del CSV.${resumenErrores}`,
-        icon: 'create',
-        btnClass: 'bg-gradient-to-r from-one-cyan/30 to-one-pink/30 border border-one-cyan/50',
-        onConfirm: async () => {
-          setBulkUploading(true);
-          const erroresCarga = errors.map((er) => ({ usuario: er.usuario || `línea ${er.line}`, motivo: er.motivo }));
-          let creados = 0;
-
-          for (let i = 0; i < rows.length; i++) {
-            const row = rows[i];
-            setOverlay({ msg: `Creando administradores... (${i + 1}/${rows.length})`, sub: row.empresa });
-            try {
-              await createAdmin({
-                usuario: row.usuario,
-                password: row.password,
-                email: row.email,
-                packStatus: row.pack ? '01' : '',
-                nameEmpresa: row.empresa,
-                logoLink: '',
-              });
-              creados++;
-            } catch (error) {
-              erroresCarga.push({ usuario: row.usuario, motivo: error.message || 'Error desconocido' });
-            }
-          }
-
-          setOverlay(null);
-          setBulkUploading(false);
-          setBulkResult({ creados, errores: erroresCarga });
-          showToast(
-            erroresCarga.length > 0
-              ? `${creados} administrador(es) creado(s), ${erroresCarga.length} con error`
-              : `${creados} administrador(es) creado(s) correctamente`,
-            erroresCarga.length > 0 && creados === 0 ? 'error' : 'success'
-          );
-          loadAdmins();
-        },
-      });
+      const headers = parseCsvLine(lines[0]);
+      const dataRows = lines.slice(1).map(parseCsvLine);
+      setCsvMapping({ headers, dataRows });
     };
     reader.readAsText(file, 'utf-8');
+  }
+
+  function handleCsvMappingConfirm(selection) {
+    const { dataRows } = csvMapping;
+    setCsvMapping(null);
+
+    const rows = [];
+    const errors = [];
+    const usuariosVistos = new Set();
+
+    dataRows.forEach((cols, i) => {
+      const lineNum = i + 2;
+      const usuario = (cols[selection.usuario] || '').trim();
+      const password = (cols[selection.password] || '').trim();
+      const email = (cols[selection.email] || '').trim();
+      const empresa = (cols[selection.empresa] || '').trim();
+      const packRaw = (selection.pack !== '' ? cols[selection.pack] : '').trim().toLowerCase();
+      const pack = ['si', 'sí', '1', '01', 'true'].includes(packRaw);
+
+      if (!usuario && !password && !email && !empresa) return;
+
+      if (!usuario || !password || !email || !empresa) {
+        errors.push({ line: lineNum, usuario, motivo: 'Faltan campos obligatorios (usuario/contraseña/email/empresa)' });
+        return;
+      }
+      const usuarioLower = usuario.toLowerCase();
+      if (usuariosVistos.has(usuarioLower)) {
+        errors.push({ line: lineNum, usuario, motivo: 'Usuario repetido dentro del mismo archivo' });
+        return;
+      }
+      if (admins.some((a) => a.usuario.toLowerCase() === usuarioLower)) {
+        errors.push({ line: lineNum, usuario, motivo: 'Ese usuario ya existe en la plataforma' });
+        return;
+      }
+      usuariosVistos.add(usuarioLower);
+      rows.push({ usuario, password, email, empresa, pack });
+    });
+
+    if (rows.length === 0) {
+      showToast(
+        errors[0]?.motivo ? `No se creó nada: ${errors[0].motivo}` : 'El archivo no tiene filas válidas',
+        'error'
+      );
+      setBulkResult({ creados: 0, errores: errors.map((er) => ({ usuario: er.usuario || `línea ${er.line}`, motivo: er.motivo })) });
+      return;
+    }
+
+    const resumenErrores =
+      errors.length > 0
+        ? `<br/><span class="text-yellow-400">${errors.length} fila(s) se van a omitir por error (usuario duplicado o datos faltantes).</span>`
+        : '';
+
+    setConfirm({
+      title: 'Carga Masiva de Administradores',
+      message: `Se van a crear <strong>${rows.length}</strong> administrador(es) nuevo(s) a partir del archivo.${resumenErrores}`,
+      icon: 'create',
+      btnClass: 'bg-gradient-to-r from-one-cyan/30 to-one-pink/30 border border-one-cyan/50',
+      onConfirm: async () => {
+        setBulkUploading(true);
+        const erroresCarga = errors.map((er) => ({ usuario: er.usuario || `línea ${er.line}`, motivo: er.motivo }));
+        let creados = 0;
+
+        for (let i = 0; i < rows.length; i++) {
+          const row = rows[i];
+          setOverlay({ msg: `Creando administradores... (${i + 1}/${rows.length})`, sub: row.empresa });
+          try {
+            await createAdmin({
+              usuario: row.usuario,
+              password: row.password,
+              email: row.email,
+              packStatus: row.pack ? '01' : '',
+              nameEmpresa: row.empresa,
+              logoLink: '',
+            });
+            creados++;
+          } catch (error) {
+            erroresCarga.push({ usuario: row.usuario, motivo: error.message || 'Error desconocido' });
+          }
+        }
+
+        setOverlay(null);
+        setBulkUploading(false);
+        setBulkResult({ creados, errores: erroresCarga });
+        showToast(
+          erroresCarga.length > 0
+            ? `${creados} administrador(es) creado(s), ${erroresCarga.length} con error`
+            : `${creados} administrador(es) creado(s) correctamente`,
+          erroresCarga.length > 0 && creados === 0 ? 'error' : 'success'
+        );
+        loadAdmins();
+      },
+    });
   }
 
   function handleEditSubmit(e) {
@@ -769,20 +746,11 @@ export default function SuperAdminDashboard() {
           </div>
           <div className="p-6">
             <p className="mb-4 text-sm text-gray-400">
-              Subí un archivo CSV con las columnas <strong className="text-gray-300">usuario, password, email, empresa</strong>{' '}
-              (opcional: <strong className="text-gray-300">pack</strong>) para crear varios administradores de una sola vez.
-              El logo de cada empresa se agrega después, individualmente, desde editar.
+              Subí tu archivo CSV, con las columnas que ya tengas (no hace falta un formato fijo): en el paso
+              siguiente elegís vos qué columna corresponde a usuario, contraseña, email y empresa. El logo de
+              cada empresa se agrega después, individualmente, desde editar.
             </p>
             <div className="flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={downloadCsvTemplate}
-                className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-semibold text-gray-300 transition-all hover:-translate-y-0.5 hover:border-white/25 hover:bg-white/10"
-              >
-                <ArrowDownTrayIcon className="h-4 w-4" />
-                Descargar Plantilla CSV
-              </button>
-
               <label className="flex cursor-pointer items-center gap-2 rounded-full border border-one-cyan/40 bg-gradient-to-r from-one-cyan/20 to-one-pink/20 px-5 py-2.5 text-sm font-bold transition-all hover:-translate-y-0.5 hover:border-one-cyan/60">
                 <ArrowUpTrayIcon className="h-4 w-4" />
                 {bulkUploading ? 'Procesando...' : 'Cargar CSV'}
@@ -1188,6 +1156,14 @@ export default function SuperAdminDashboard() {
       )}
 
       <ConfirmModal confirm={confirm} onClose={() => setConfirm(null)} />
+      {csvMapping && (
+        <ColumnMapModal
+          mapping={csvMapping}
+          fieldsConfig={ADMINS_FIELDS_CONFIG}
+          onCancel={() => setCsvMapping(null)}
+          onConfirm={handleCsvMappingConfirm}
+        />
+      )}
       {overlay && <LoadingOverlay msg={overlay.msg} sub={overlay.sub} />}
       {ToastContainer}
       <Footer />

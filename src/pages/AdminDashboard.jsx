@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ExclamationTriangleIcon, CheckCircleIcon, NoSymbolIcon } from '@heroicons/react/24/solid';
-import { ArrowUpTrayIcon, ArrowDownTrayIcon, XCircleIcon } from '@heroicons/react/24/outline';
+import { ArrowUpTrayIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import { CONFIG } from '../lib/config.js';
 import { Session } from '../lib/session.js';
 import { Auth } from '../lib/auth.js';
@@ -214,6 +214,86 @@ export function ConfirmModal({ confirm, onClose }) {
   );
 }
 
+/** Adivina qué columna del CSV corresponde a un campo, buscando por nombre parecido. */
+function guessColumnIndex(headers, aliases) {
+  const normalized = headers.map((h) => h.toLowerCase().trim());
+  const idx = normalized.findIndex((h) => aliases.includes(h));
+  return idx !== -1 ? idx : '';
+}
+
+/**
+ * Modal de mapeo de columnas: el usuario sube CUALQUIER CSV (sin formato fijo)
+ * y acá elige, columna por columna, cuál corresponde a cada campo requerido.
+ * mapping: { headers: string[], dataRows: string[][] }
+ * fieldsConfig: [{ key, label, required, aliases }]
+ */
+export function ColumnMapModal({ mapping, fieldsConfig, onCancel, onConfirm }) {
+  const [selection, setSelection] = useState(() => {
+    const initial = {};
+    fieldsConfig.forEach((f) => {
+      initial[f.key] = guessColumnIndex(mapping.headers, f.aliases);
+    });
+    return initial;
+  });
+
+  if (!mapping) return null;
+
+  const faltanRequeridos = fieldsConfig.some((f) => f.required && selection[f.key] === '');
+
+  return (
+    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#141019] p-6 shadow-2xl">
+        <h3 className="mb-1 font-title text-xl font-bold">Elegí qué columna es cada dato</h3>
+        <p className="mb-5 text-sm text-gray-400">
+          Detectamos <strong className="text-gray-300">{mapping.dataRows.length}</strong> fila(s) en tu archivo.
+          Indicá qué columna corresponde a cada campo.
+        </p>
+
+        <div className="mb-6 space-y-3">
+          {fieldsConfig.map((f) => (
+            <div key={f.key} className="flex items-center gap-3">
+              <label className="w-32 shrink-0 text-sm font-semibold text-gray-300">
+                {f.label}
+                {f.required && <span className="text-red-400"> *</span>}
+              </label>
+              <select
+                className={inputClass}
+                value={selection[f.key]}
+                onChange={(e) =>
+                  setSelection((s) => ({ ...s, [f.key]: e.target.value === '' ? '' : Number(e.target.value) }))
+                }
+              >
+                <option value="">{f.required ? '-- Seleccionar --' : '-- No usar --'}</option>
+                {mapping.headers.map((h, i) => (
+                  <option key={i} value={i}>
+                    {h || `Columna ${i + 1}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex gap-3">
+          <button
+            onClick={onCancel}
+            className="flex-1 rounded-full border border-white/20 bg-white/5 px-6 py-2.5 text-sm font-semibold transition-all hover:bg-white/10"
+          >
+            Cancelar
+          </button>
+          <button
+            disabled={faltanRequeridos}
+            onClick={() => onConfirm(selection)}
+            className="flex-1 cursor-pointer rounded-full border border-one-cyan/50 bg-gradient-to-r from-one-cyan/30 to-one-pink/30 px-6 py-2.5 text-sm font-bold transition-all disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Continuar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** Modal de credenciales al crear usuario (réplica del original) */
 export function CredentialsModal({ creds, onClose }) {
   if (!creds) return null;
@@ -283,6 +363,7 @@ export default function AdminDashboard() {
   const [form, setForm] = useState({ usuario: '', password: '', email: '', nombre: '', pack: false });
   const [bulkUploading, setBulkUploading] = useState(false);
   const [bulkResult, setBulkResult] = useState(null); // { creados, errores: [{usuario, motivo}] }
+  const [csvMapping, setCsvMapping] = useState(null); // { headers, dataRows } mientras se elige el mapeo
   const { showToast, ToastContainer } = useToasts();
 
   async function loadUsers() {
@@ -441,98 +522,16 @@ export default function AdminDashboard() {
     return fields.map((f) => f.trim());
   }
 
-  const CSV_HEADER_ALIASES = {
-    usuario: ['usuario', 'usuario_user', 'user'],
-    password: ['password', 'contraseña', 'contrasena', 'pass'],
-    email: ['email', 'correo', 'email_user'],
-    nombre: ['nombre', 'nombre_completo', 'name'],
-    pack: ['pack', 'pack_status', 'pack_lider'],
-  };
+  const USUARIOS_FIELDS_CONFIG = [
+    { key: 'usuario', label: 'Usuario', required: true, aliases: ['usuario', 'usuario_user', 'user'] },
+    { key: 'password', label: 'Contraseña', required: true, aliases: ['password', 'contraseña', 'contrasena', 'pass'] },
+    { key: 'email', label: 'Email', required: true, aliases: ['email', 'correo', 'email_user'] },
+    { key: 'nombre', label: 'Nombre', required: true, aliases: ['nombre', 'nombre_completo', 'name'] },
+    { key: 'pack', label: 'Pack Líder', required: false, aliases: ['pack', 'pack_status', 'pack_lider'] },
+  ];
 
-  function resolveHeaderIndexes(headerRow) {
-    const normalized = headerRow.map((h) => h.toLowerCase().trim());
-    const indexes = {};
-    for (const [field, aliases] of Object.entries(CSV_HEADER_ALIASES)) {
-      const idx = normalized.findIndex((h) => aliases.includes(h));
-      if (idx !== -1) indexes[field] = idx;
-    }
-    return indexes;
-  }
-
-  /** Convierte el texto crudo del CSV en filas válidas + filas con error, sin tocar la base. */
-  function parseUsuariosCsv(text) {
-    const lines = text
-      .replace(/^﻿/, '')
-      .split(/\r\n|\n/)
-      .filter((l) => l.trim() !== '');
-
-    if (lines.length < 2) {
-      return { rows: [], errors: [{ line: 0, motivo: 'El archivo está vacío o no tiene filas de datos' }] };
-    }
-
-    const indexes = resolveHeaderIndexes(parseCsvLine(lines[0]));
-    const faltantes = ['usuario', 'password', 'email', 'nombre'].filter((f) => indexes[f] === undefined);
-    if (faltantes.length > 0) {
-      return {
-        rows: [],
-        errors: [{ line: 0, motivo: `Faltan columnas obligatorias en el CSV: ${faltantes.join(', ')}` }],
-      };
-    }
-
-    const rows = [];
-    const errors = [];
-    const usuariosVistos = new Set();
-
-    for (let i = 1; i < lines.length; i++) {
-      const cols = parseCsvLine(lines[i]);
-      const usuario = (cols[indexes.usuario] || '').trim();
-      const password = (cols[indexes.password] || '').trim();
-      const email = (cols[indexes.email] || '').trim();
-      const nombre = (cols[indexes.nombre] || '').trim();
-      const packRaw = (indexes.pack !== undefined ? cols[indexes.pack] : '').trim().toLowerCase();
-      const pack = ['si', 'sí', '1', '01', 'true'].includes(packRaw);
-      const lineNum = i + 1;
-
-      if (!usuario || !password || !email || !nombre) {
-        errors.push({ line: lineNum, usuario, motivo: 'Faltan campos obligatorios (usuario/contraseña/email/nombre)' });
-        continue;
-      }
-      if (!validateEmail(email)) {
-        errors.push({ line: lineNum, usuario, motivo: 'Email inválido' });
-        continue;
-      }
-      if (password.length < 6) {
-        errors.push({ line: lineNum, usuario, motivo: 'La contraseña debe tener al menos 6 caracteres' });
-        continue;
-      }
-      const usuarioLower = usuario.toLowerCase();
-      if (usuariosVistos.has(usuarioLower)) {
-        errors.push({ line: lineNum, usuario, motivo: 'Usuario repetido dentro del mismo archivo' });
-        continue;
-      }
-      if (users.some((u) => u.usuario.toLowerCase() === usuarioLower)) {
-        errors.push({ line: lineNum, usuario, motivo: 'Ese usuario ya existe en tu plataforma' });
-        continue;
-      }
-      usuariosVistos.add(usuarioLower);
-      rows.push({ usuario, password, email, nombre, pack });
-    }
-
-    return { rows, errors };
-  }
-
-  function downloadCsvTemplate() {
-    const contenido =
-      'usuario,password,email,nombre,pack\nusuario01,contrasena123,persona@ejemplo.com,Juan Pérez,no\n';
-    const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'plantilla_usuarios.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
+  /** El usuario sube CUALQUIER CSV (sin formato fijo) — acá solo lo leemos
+   * en filas crudas; el mapeo de columnas lo elige él en el modal siguiente. */
   function handleBulkCsvFile(e) {
     const file = e.target.files?.[0];
     e.target.value = '';
@@ -540,64 +539,121 @@ export default function AdminDashboard() {
 
     const reader = new FileReader();
     reader.onload = () => {
-      const { rows, errors } = parseUsuariosCsv(String(reader.result || ''));
+      const lines = String(reader.result || '')
+        .replace(/^﻿/, '')
+        .split(/\r\n|\n/)
+        .filter((l) => l.trim() !== '');
 
-      if (rows.length === 0) {
-        showToast(
-          errors[0]?.motivo ? `No se creó nada: ${errors[0].motivo}` : 'El archivo no tiene filas válidas',
-          'error'
-        );
-        setBulkResult({ creados: 0, errores: errors.map((er) => ({ usuario: er.usuario || `línea ${er.line}`, motivo: er.motivo })) });
+      if (lines.length < 2) {
+        showToast('El archivo está vacío o no tiene filas de datos', 'error');
         return;
       }
 
-      const resumenErrores =
-        errors.length > 0
-          ? `<br/><span class="text-yellow-400">${errors.length} fila(s) se van a omitir por error (usuario duplicado o datos inválidos).</span>`
-          : '';
-
-      setConfirm({
-        title: 'Carga Masiva de Usuarios',
-        message: `Se van a crear <strong>${rows.length}</strong> usuario(s) nuevo(s) a partir del CSV.${resumenErrores}`,
-        icon: 'create',
-        btnClass: 'bg-gradient-to-r from-one-cyan/30 to-one-pink/30 border border-one-cyan/50',
-        onConfirm: async () => {
-          setBulkUploading(true);
-          const erroresCarga = errors.map((er) => ({ usuario: er.usuario || `línea ${er.line}`, motivo: er.motivo }));
-          let creados = 0;
-
-          for (let i = 0; i < rows.length; i++) {
-            const row = rows[i];
-            setOverlay({ msg: `Creando usuarios... (${i + 1}/${rows.length})`, sub: row.nombre });
-            try {
-              await createUsuario({
-                adminId: session.adminId,
-                usuario: row.usuario,
-                password: row.password,
-                email: row.email,
-                nombre: row.nombre,
-                packStatus: row.pack ? '01' : '',
-              });
-              creados++;
-            } catch (error) {
-              erroresCarga.push({ usuario: row.usuario, motivo: error.message || 'Error desconocido' });
-            }
-          }
-
-          setOverlay(null);
-          setBulkUploading(false);
-          setBulkResult({ creados, errores: erroresCarga });
-          showToast(
-            erroresCarga.length > 0
-              ? `${creados} usuario(s) creado(s), ${erroresCarga.length} con error`
-              : `${creados} usuario(s) creado(s) correctamente`,
-            erroresCarga.length > 0 && creados === 0 ? 'error' : 'success'
-          );
-          loadUsers();
-        },
-      });
+      const headers = parseCsvLine(lines[0]);
+      const dataRows = lines.slice(1).map(parseCsvLine);
+      setCsvMapping({ headers, dataRows });
     };
     reader.readAsText(file, 'utf-8');
+  }
+
+  function handleCsvMappingConfirm(selection) {
+    const { dataRows } = csvMapping;
+    setCsvMapping(null);
+
+    const rows = [];
+    const errors = [];
+    const usuariosVistos = new Set();
+
+    dataRows.forEach((cols, i) => {
+      const lineNum = i + 2; // +1 por el header, +1 porque i es 0-indexado
+      const usuario = (cols[selection.usuario] || '').trim();
+      const password = (cols[selection.password] || '').trim();
+      const email = (cols[selection.email] || '').trim();
+      const nombre = (cols[selection.nombre] || '').trim();
+      const packRaw = (selection.pack !== '' ? cols[selection.pack] : '').trim().toLowerCase();
+      const pack = ['si', 'sí', '1', '01', 'true'].includes(packRaw);
+
+      if (!usuario && !password && !email && !nombre) return; // fila vacía, se ignora en silencio
+
+      if (!usuario || !password || !email || !nombre) {
+        errors.push({ line: lineNum, usuario, motivo: 'Faltan campos obligatorios (usuario/contraseña/email/nombre)' });
+        return;
+      }
+      if (!validateEmail(email)) {
+        errors.push({ line: lineNum, usuario, motivo: 'Email inválido' });
+        return;
+      }
+      if (password.length < 6) {
+        errors.push({ line: lineNum, usuario, motivo: 'La contraseña debe tener al menos 6 caracteres' });
+        return;
+      }
+      const usuarioLower = usuario.toLowerCase();
+      if (usuariosVistos.has(usuarioLower)) {
+        errors.push({ line: lineNum, usuario, motivo: 'Usuario repetido dentro del mismo archivo' });
+        return;
+      }
+      if (users.some((u) => u.usuario.toLowerCase() === usuarioLower)) {
+        errors.push({ line: lineNum, usuario, motivo: 'Ese usuario ya existe en tu plataforma' });
+        return;
+      }
+      usuariosVistos.add(usuarioLower);
+      rows.push({ usuario, password, email, nombre, pack });
+    });
+
+    if (rows.length === 0) {
+      showToast(
+        errors[0]?.motivo ? `No se creó nada: ${errors[0].motivo}` : 'El archivo no tiene filas válidas',
+        'error'
+      );
+      setBulkResult({ creados: 0, errores: errors.map((er) => ({ usuario: er.usuario || `línea ${er.line}`, motivo: er.motivo })) });
+      return;
+    }
+
+    const resumenErrores =
+      errors.length > 0
+        ? `<br/><span class="text-yellow-400">${errors.length} fila(s) se van a omitir por error (usuario duplicado o datos inválidos).</span>`
+        : '';
+
+    setConfirm({
+      title: 'Carga Masiva de Usuarios',
+      message: `Se van a crear <strong>${rows.length}</strong> usuario(s) nuevo(s) a partir del archivo.${resumenErrores}`,
+      icon: 'create',
+      btnClass: 'bg-gradient-to-r from-one-cyan/30 to-one-pink/30 border border-one-cyan/50',
+      onConfirm: async () => {
+        setBulkUploading(true);
+        const erroresCarga = errors.map((er) => ({ usuario: er.usuario || `línea ${er.line}`, motivo: er.motivo }));
+        let creados = 0;
+
+        for (let i = 0; i < rows.length; i++) {
+          const row = rows[i];
+          setOverlay({ msg: `Creando usuarios... (${i + 1}/${rows.length})`, sub: row.nombre });
+          try {
+            await createUsuario({
+              adminId: session.adminId,
+              usuario: row.usuario,
+              password: row.password,
+              email: row.email,
+              nombre: row.nombre,
+              packStatus: row.pack ? '01' : '',
+            });
+            creados++;
+          } catch (error) {
+            erroresCarga.push({ usuario: row.usuario, motivo: error.message || 'Error desconocido' });
+          }
+        }
+
+        setOverlay(null);
+        setBulkUploading(false);
+        setBulkResult({ creados, errores: erroresCarga });
+        showToast(
+          erroresCarga.length > 0
+            ? `${creados} usuario(s) creado(s), ${erroresCarga.length} con error`
+            : `${creados} usuario(s) creado(s) correctamente`,
+          erroresCarga.length > 0 && creados === 0 ? 'error' : 'success'
+        );
+        loadUsers();
+      },
+    });
   }
 
   function handleEditSubmit(e) {
@@ -914,19 +970,10 @@ export default function AdminDashboard() {
           </div>
           <div className="p-6">
             <p className="mb-4 text-sm text-gray-400">
-              Subí un archivo CSV con las columnas <strong className="text-gray-300">usuario, password, email, nombre</strong>{' '}
-              (opcional: <strong className="text-gray-300">pack</strong>) para crear varios usuarios de una sola vez.
+              Subí tu archivo CSV, con las columnas que ya tengas (no hace falta un formato fijo): en el paso
+              siguiente elegís vos qué columna corresponde a usuario, contraseña, email y nombre.
             </p>
             <div className="flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={downloadCsvTemplate}
-                className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-semibold text-gray-300 transition-all hover:-translate-y-0.5 hover:border-white/25 hover:bg-white/10"
-              >
-                <ArrowDownTrayIcon className="h-4 w-4" />
-                Descargar Plantilla CSV
-              </button>
-
               <label className="flex cursor-pointer items-center gap-2 rounded-full border border-one-cyan/40 bg-gradient-to-r from-one-cyan/20 to-one-pink/20 px-5 py-2.5 text-sm font-bold transition-all hover:-translate-y-0.5 hover:border-one-cyan/60">
                 <ArrowUpTrayIcon className="h-4 w-4" />
                 {bulkUploading ? 'Procesando...' : 'Cargar CSV'}
@@ -1224,6 +1271,14 @@ export default function AdminDashboard() {
       )}
 
       <ConfirmModal confirm={confirm} onClose={() => setConfirm(null)} />
+      {csvMapping && (
+        <ColumnMapModal
+          mapping={csvMapping}
+          fieldsConfig={USUARIOS_FIELDS_CONFIG}
+          onCancel={() => setCsvMapping(null)}
+          onConfirm={handleCsvMappingConfirm}
+        />
+      )}
       <CredentialsModal creds={creds} onClose={() => setCreds(null)} />
       {overlay && <LoadingOverlay msg={overlay.msg} sub={overlay.sub} />}
       {ToastContainer}

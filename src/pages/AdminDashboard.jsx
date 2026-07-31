@@ -231,14 +231,16 @@ export function ColumnMapModal({ mapping, fieldsConfig, onCancel, onConfirm }) {
   const [selection, setSelection] = useState(() => {
     const initial = {};
     fieldsConfig.forEach((f) => {
-      initial[f.key] = guessColumnIndex(mapping.headers, f.aliases);
+      initial[f.key] = f.type === 'toggle' ? false : guessColumnIndex(mapping.headers, f.aliases);
     });
     return initial;
   });
 
   if (!mapping) return null;
 
-  const faltanRequeridos = fieldsConfig.some((f) => f.required && selection[f.key] === '');
+  const faltanRequeridos = fieldsConfig.some(
+    (f) => f.type !== 'toggle' && f.required && selection[f.key] === ''
+  );
 
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
@@ -250,28 +252,49 @@ export function ColumnMapModal({ mapping, fieldsConfig, onCancel, onConfirm }) {
         </p>
 
         <div className="mb-6 space-y-3">
-          {fieldsConfig.map((f) => (
-            <div key={f.key} className="flex items-center gap-3">
-              <label className="w-32 shrink-0 text-sm font-semibold text-gray-300">
-                {f.label}
-                {f.required && <span className="text-red-400"> *</span>}
-              </label>
-              <select
-                className={inputClass}
-                value={selection[f.key]}
-                onChange={(e) =>
-                  setSelection((s) => ({ ...s, [f.key]: e.target.value === '' ? '' : Number(e.target.value) }))
-                }
+          {fieldsConfig.map((f) =>
+            f.type === 'toggle' ? (
+              <div
+                key={f.key}
+                className="flex items-center justify-between rounded-xl border border-one-cyan/20 bg-one-cyan/5 px-4 py-3"
               >
-                <option value="">{f.required ? '-- Seleccionar --' : '-- No usar --'}</option>
-                {mapping.headers.map((h, i) => (
-                  <option key={i} value={i}>
-                    {h || `Columna ${i + 1}`}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ))}
+                <div>
+                  <span className="block text-sm font-semibold text-gray-300">{f.label}</span>
+                  <span className="text-xs text-gray-500">{f.help}</span>
+                </div>
+                <label className="relative inline-flex shrink-0 cursor-pointer items-center">
+                  <input
+                    type="checkbox"
+                    className="peer sr-only"
+                    checked={selection[f.key]}
+                    onChange={(e) => setSelection((s) => ({ ...s, [f.key]: e.target.checked }))}
+                  />
+                  <div className="peer h-6 w-11 rounded-full bg-gray-700 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-one-cyan peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none" />
+                </label>
+              </div>
+            ) : (
+              <div key={f.key} className="flex items-center gap-3">
+                <label className="w-32 shrink-0 text-sm font-semibold text-gray-300">
+                  {f.label}
+                  {f.required && <span className="text-red-400"> *</span>}
+                </label>
+                <select
+                  className={inputClass}
+                  value={selection[f.key]}
+                  onChange={(e) =>
+                    setSelection((s) => ({ ...s, [f.key]: e.target.value === '' ? '' : Number(e.target.value) }))
+                  }
+                >
+                  <option value="">{f.required ? '-- Seleccionar --' : '-- No usar --'}</option>
+                  {mapping.headers.map((h, i) => (
+                    <option key={i} value={i}>
+                      {h || `Columna ${i + 1}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )
+          )}
         </div>
 
         <div className="flex gap-3">
@@ -527,7 +550,12 @@ export default function AdminDashboard() {
     { key: 'password', label: 'Contraseña', required: true, aliases: ['password', 'contraseña', 'contrasena', 'pass'] },
     { key: 'email', label: 'Email', required: true, aliases: ['email', 'correo', 'email_user'] },
     { key: 'nombre', label: 'Nombre', required: true, aliases: ['nombre', 'nombre_completo', 'name'] },
-    { key: 'pack', label: 'Pack Líder', required: false, aliases: ['pack', 'pack_status', 'pack_lider'] },
+    {
+      key: 'pack',
+      label: 'Activar Pack Líder para todos',
+      type: 'toggle',
+      help: 'Se aplica a todos los usuarios de esta carga, sin tocarlo después uno por uno.',
+    },
   ];
 
   /** El usuario sube CUALQUIER CSV (sin formato fijo) — acá solo lo leemos
@@ -570,8 +598,7 @@ export default function AdminDashboard() {
       const password = (cols[selection.password] || '').trim();
       const email = (cols[selection.email] || '').trim();
       const nombre = (cols[selection.nombre] || '').trim();
-      const packRaw = (selection.pack !== '' ? cols[selection.pack] : '').trim().toLowerCase();
-      const pack = ['si', 'sí', '1', '01', 'true'].includes(packRaw);
+      const pack = !!selection.pack;
 
       if (!usuario && !password && !email && !nombre) return; // fila vacía, se ignora en silencio
 

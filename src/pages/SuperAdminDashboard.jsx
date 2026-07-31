@@ -275,7 +275,12 @@ export default function SuperAdminDashboard() {
     { key: 'password', label: 'Contraseña', required: true, aliases: ['password', 'contraseña', 'contrasena', 'pass'] },
     { key: 'email', label: 'Email', required: true, aliases: ['email', 'correo', 'email_admin'] },
     { key: 'empresa', label: 'Empresa', required: true, aliases: ['empresa', 'nombre_empresa', 'name_empresa'] },
-    { key: 'pack', label: 'Pack Líder', required: false, aliases: ['pack', 'pack_status', 'pack_lider'] },
+    {
+      key: 'pack',
+      label: 'Activar Pack Líder para todos',
+      type: 'toggle',
+      help: 'Se aplica a todos los administradores de esta carga, sin tocarlo después uno por uno.',
+    },
   ];
 
   /** El usuario sube CUALQUIER CSV (sin formato fijo) — acá solo lo leemos
@@ -318,8 +323,7 @@ export default function SuperAdminDashboard() {
       const password = (cols[selection.password] || '').trim();
       const email = (cols[selection.email] || '').trim();
       const empresa = (cols[selection.empresa] || '').trim();
-      const packRaw = (selection.pack !== '' ? cols[selection.pack] : '').trim().toLowerCase();
-      const pack = ['si', 'sí', '1', '01', 'true'].includes(packRaw);
+      const pack = !!selection.pack;
 
       if (!usuario && !password && !email && !empresa) return;
 

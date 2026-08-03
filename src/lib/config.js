@@ -43,6 +43,7 @@ export const CONFIG = {
     login: '/',
     superAdminDashboard: '/superadmin',
     adminDashboard: '/admin',
+    rrhh: '/admin/rrhh',
     userboard: '/userboard',
     test: '/test',
     // El Informe se sirve como página estática (public/informe/) para mantener

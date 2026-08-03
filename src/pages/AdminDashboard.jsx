@@ -783,17 +783,31 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <button
-              className="flex items-center gap-2 rounded-full border border-red-500/40 bg-red-500/20 px-5 py-2 text-sm font-semibold transition-all hover:-translate-y-0.5 hover:border-red-500/60"
-              onClick={logout}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <polyline points="16 17 21 12 16 7" />
-                <line x1="21" y1="12" x2="9" y2="12" />
-              </svg>
-              Cerrar Sesión
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate(CONFIG.routes.rrhh)}
+                className="flex items-center gap-2 rounded-full border border-one-cyan/30 bg-one-cyan/10 px-5 py-2 text-sm font-semibold transition-all hover:-translate-y-0.5 hover:border-one-cyan/50"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+                Panel RRHH
+              </button>
+              <button
+                className="flex items-center gap-2 rounded-full border border-red-500/40 bg-red-500/20 px-5 py-2 text-sm font-semibold transition-all hover:-translate-y-0.5 hover:border-red-500/60"
+                onClick={logout}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+                Cerrar Sesión
+              </button>
+            </div>
           </div>
         </div>
       </header>

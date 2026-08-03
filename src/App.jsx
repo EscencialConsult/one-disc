@@ -4,6 +4,7 @@ import { Session } from './lib/session.js';
 import Landing from './pages/Landing.jsx';
 import SuperAdminDashboard from './pages/SuperAdminDashboard.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
+import Rrhh from './pages/Rrhh.jsx';
 import Userboard from './pages/Userboard.jsx';
 import TestDisc from './pages/TestDisc.jsx';
 
@@ -35,6 +36,14 @@ export default function App() {
         element={
           <Protected role={CONFIG.roles.ADMIN}>
             <AdminDashboard />
+          </Protected>
+        }
+      />
+      <Route
+        path={CONFIG.routes.rrhh}
+        element={
+          <Protected role={CONFIG.roles.ADMIN}>
+            <Rrhh />
           </Protected>
         }
       />

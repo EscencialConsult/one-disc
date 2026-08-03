@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ExclamationTriangleIcon, CheckCircleIcon, NoSymbolIcon } from '@heroicons/react/24/solid';
-import { ArrowUpTrayIcon, XCircleIcon } from '@heroicons/react/24/outline';
+import { ArrowUpTrayIcon, XCircleIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
 import { CONFIG } from '../lib/config.js';
 import { Session } from '../lib/session.js';
 import { Auth } from '../lib/auth.js';
+import { loadScripts, unloadLegacyScripts } from '../lib/loadScript.js';
 import Footer from '../components/Footer.jsx';
 import {
   getUsuariosByAdmin,
@@ -12,6 +13,13 @@ import {
   createUsuario,
   updateUsuario,
 } from '../lib/api.js';
+
+// Mismos scripts legacy que usa Userboard para el manual (jsPDF 2.5.1, sin tocar).
+const MANUAL_SCRIPTS = [
+  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+  '/legacy/ManualTheme.js',
+  '/legacy/Manual.js',
+];
 
 /**
  * Panel del Administrador — réplica de AdminDashboard/ (versión AppScript).
@@ -383,6 +391,7 @@ export default function AdminDashboard() {
   const [formPassVisible, setFormPassVisible] = useState(false);
   const [editPassVisible, setEditPassVisible] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [descargandoManual, setDescargandoManual] = useState(null); // id del usuario cuyo manual se está generando
   const [form, setForm] = useState({ usuario: '', password: '', email: '', nombre: '', pack: false });
   const [bulkUploading, setBulkUploading] = useState(false);
   const [bulkResult, setBulkResult] = useState(null); // { creados, errores: [{usuario, motivo}] }
@@ -402,19 +411,22 @@ export default function AdminDashboard() {
         estado: String(row.estado || 'activo').toLowerCase(),
         packStatus: String(row.pack_status || '').trim(),
         testCompletado: false,
+        raw: null,
       }));
 
       setOverlay({ msg: 'Cargando panel...', sub: `Verificando tests (${mapped.length} usuarios)...` });
       // Una sola consulta a Respuestas (antes: un fetch por usuario)
       const respuestas = await getRespuestasByAdmin(session.adminId);
-      const completedMap = {};
+      const respuestaMap = {};
       respuestas.forEach((r) => {
         if (r.Respuestas && String(r.Respuestas).trim() !== '') {
-          completedMap[String(r.User || '').trim().toLowerCase()] = true;
+          respuestaMap[String(r.User || '').trim().toLowerCase()] = r;
         }
       });
       mapped.forEach((u) => {
-        u.testCompletado = !!completedMap[u.usuario.trim().toLowerCase()];
+        const r = respuestaMap[u.usuario.trim().toLowerCase()];
+        u.testCompletado = !!r;
+        u.raw = r || null;
       });
 
       setUsers(mapped);
@@ -746,6 +758,39 @@ export default function AdminDashboard() {
       console.error('Error:', error);
       showToast('No se pudo actualizar: ' + (error.message || ''), 'error');
       loadUsers();
+    }
+  }
+
+  /** Genera y descarga el Manual Personalizado (Pack Líder) de un usuario —
+   * mismo mecanismo cliente que usa Userboard, sin tocar Manual.js. */
+  async function descargarPackLider(user) {
+    if (!user.raw) {
+      showToast('Ese usuario todavía no completó el test', 'error');
+      return;
+    }
+    setDescargandoManual(user.id);
+    try {
+      unloadLegacyScripts(['jspdf']);
+      await loadScripts(MANUAL_SCRIPTS);
+
+      const data = user.raw;
+      if (typeof window.descargarManualPersonalizado === 'function') {
+        await window.descargarManualPersonalizado(data);
+      } else if (typeof window.generarManualPersonalizado === 'function') {
+        await window.generarManualPersonalizado(data);
+      } else if (window.Manual && typeof window.Manual.descargar === 'function') {
+        await window.Manual.descargar(data);
+      } else if (window.Manual && typeof window.Manual.generar === 'function') {
+        await window.Manual.generar(data);
+      } else {
+        throw new Error('Manual.js no expone una función compatible');
+      }
+      showToast(`Manual Personalizado de "${user.usuario}" descargado`, 'success');
+    } catch (error) {
+      console.error('Error al generar el manual:', error);
+      showToast('No se pudo generar el manual: ' + (error.message || ''), 'error');
+    } finally {
+      setDescargandoManual(null);
     }
   }
 
@@ -1179,6 +1224,16 @@ export default function AdminDashboard() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex justify-center gap-2">
+                            {isPackEnabled && user.testCompletado && (
+                              <button
+                                className="rounded-lg border border-one-gold/30 bg-one-gold/10 p-2 text-one-gold transition-all hover:bg-one-gold/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                onClick={() => descargarPackLider(user)}
+                                disabled={descargandoManual === user.id}
+                                title="Descargar Pack Líder (Manual Personalizado)"
+                              >
+                                <DocumentArrowDownIcon className="h-4 w-4" />
+                              </button>
+                            )}
                             <button
                               className="rounded-lg border border-one-cyan/30 bg-one-cyan/10 p-2 text-one-cyan transition-all hover:bg-one-cyan/20"
                               onClick={() =>

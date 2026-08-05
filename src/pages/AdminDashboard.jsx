@@ -43,6 +43,27 @@ function validateEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+/** Genera y descarga un CSV de ejemplo (plantilla) con el mismo formato que
+ * la carga masiva sabe leer — para que quien suba el archivo no tenga que
+ * adivinar cómo armarlo. Se abre bien en Excel (con BOM UTF-8, así los
+ * acentos no se rompen). */
+export function descargarPlantillaCSV(headers, filaEjemplo, nombreArchivo) {
+  const escapar = (v) => {
+    const s = String(v ?? '');
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  const contenido = [headers, filaEjemplo].map((fila) => fila.map(escapar).join(',')).join('\r\n');
+  const blob = new Blob(['﻿' + contenido], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nombreArchivo;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 export function EyeButton({ visible, onClick, className = '' }) {
   return (
     <button type="button" onClick={onClick} className={className}>
@@ -239,16 +260,23 @@ export function ColumnMapModal({ mapping, fieldsConfig, onCancel, onConfirm }) {
   const [selection, setSelection] = useState(() => {
     const initial = {};
     fieldsConfig.forEach((f) => {
-      initial[f.key] = f.type === 'toggle' ? false : guessColumnIndex(mapping.headers, f.aliases);
+      initial[f.key] =
+        f.type === 'toggle'
+          ? false
+          : f.type === 'credits'
+            ? { ilimitado: false, valor: '' }
+            : guessColumnIndex(mapping.headers, f.aliases);
     });
     return initial;
   });
 
   if (!mapping) return null;
 
-  const faltanRequeridos = fieldsConfig.some(
-    (f) => f.type !== 'toggle' && f.required && selection[f.key] === ''
-  );
+  const faltanRequeridos = fieldsConfig.some((f) => {
+    if (f.type === 'toggle') return false;
+    if (f.type === 'credits') return !selection[f.key].ilimitado && !/^\d+$/.test(selection[f.key].valor.trim());
+    return f.required && selection[f.key] === '';
+  });
 
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
@@ -278,6 +306,44 @@ export function ColumnMapModal({ mapping, fieldsConfig, onCancel, onConfirm }) {
                     onChange={(e) => setSelection((s) => ({ ...s, [f.key]: e.target.checked }))}
                   />
                   <div className="peer h-6 w-11 rounded-full bg-gray-700 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-one-cyan peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none" />
+                </label>
+              </div>
+            ) : f.type === 'credits' ? (
+              <div key={f.key} className="rounded-xl border border-one-cyan/20 bg-one-cyan/5 p-4">
+                <div className="mb-3">
+                  <span className="block text-sm font-semibold text-gray-300">{f.label}</span>
+                  <span className="text-xs text-gray-500">{f.help}</span>
+                </div>
+                {!selection[f.key].ilimitado && (
+                  <input
+                    type="number"
+                    min={0}
+                    step={1}
+                    className={inputClass + ' mb-3'}
+                    placeholder="Ej: 10, 100, 300..."
+                    value={selection[f.key].valor}
+                    onChange={(e) =>
+                      setSelection((s) => ({ ...s, [f.key]: { ...s[f.key], valor: e.target.value } }))
+                    }
+                  />
+                )}
+                <label className="flex cursor-pointer items-start gap-2.5">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 h-4 w-4 shrink-0 accent-one-cyan"
+                    checked={selection[f.key].ilimitado}
+                    onChange={(e) =>
+                      setSelection((s) => ({ ...s, [f.key]: { ...s[f.key], ilimitado: e.target.checked } }))
+                    }
+                  />
+                  <span className="text-xs">
+                    <span className="font-semibold text-gray-300">Créditos ilimitados</span>
+                    {selection[f.key].ilimitado && (
+                      <span className="mt-0.5 block text-yellow-400">
+                        ⚠ Precaución: van a poder crear usuarios sin ningún límite.
+                      </span>
+                    )}
+                  </span>
                 </label>
               </div>
             ) : (
@@ -583,6 +649,15 @@ export default function AdminDashboard() {
       help: 'Se aplica a todos los usuarios de esta carga, sin tocarlo después uno por uno.',
     },
   ];
+
+  /** Descarga un CSV de ejemplo con el formato ideal para la carga masiva de usuarios. */
+  function descargarPlantillaUsuarios() {
+    descargarPlantillaCSV(
+      ['usuario', 'password', 'email', 'nombre'],
+      ['usuario_ejemplo', 'Password123', 'usuario@ejemplo.com', 'Juan Pérez'],
+      'plantilla_usuarios.csv'
+    );
+  }
 
   /** El usuario sube CUALQUIER CSV (sin formato fijo) — acá solo lo leemos
    * en filas crudas; el mapeo de columnas lo elige él en el modal siguiente. */
@@ -1097,6 +1172,11 @@ export default function AdminDashboard() {
               Subí tu archivo CSV, con las columnas que ya tengas (no hace falta un formato fijo): en el paso
               siguiente elegís vos qué columna corresponde a usuario, contraseña, email y nombre.
             </p>
+            {limiteUsuarios !== null && (
+              <p className={`mb-4 text-sm font-semibold ${users.length >= limiteUsuarios ? 'text-red-400' : 'text-one-cyan'}`}>
+                Créditos disponibles antes de subir: {Math.max(0, limiteUsuarios - users.length)} de {limiteUsuarios}
+              </p>
+            )}
             <div className="flex flex-wrap items-center gap-3">
               <label className="flex cursor-pointer items-center gap-2 rounded-full border border-one-cyan/40 bg-gradient-to-r from-one-cyan/20 to-one-pink/20 px-5 py-2.5 text-sm font-bold transition-all hover:-translate-y-0.5 hover:border-one-cyan/60">
                 <ArrowUpTrayIcon className="h-4 w-4" />
@@ -1109,6 +1189,18 @@ export default function AdminDashboard() {
                   onChange={handleBulkCsvFile}
                 />
               </label>
+              <button
+                type="button"
+                onClick={descargarPlantillaUsuarios}
+                className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-semibold text-gray-300 transition-all hover:border-white/25 hover:bg-white/10"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Descargar plantilla de ejemplo
+              </button>
             </div>
 
             {bulkResult && (

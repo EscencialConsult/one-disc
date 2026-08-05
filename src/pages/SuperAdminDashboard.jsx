@@ -15,6 +15,7 @@ import {
   ColumnMapModal,
   useToasts,
   sanitizeText,
+  descargarPlantillaCSV,
 } from './AdminDashboard.jsx';
 
 /**
@@ -296,7 +297,22 @@ export default function SuperAdminDashboard() {
       type: 'toggle',
       help: 'Se aplica a todos los administradores de esta carga, sin tocarlo después uno por uno.',
     },
+    {
+      key: 'limiteUsuarios',
+      label: 'Créditos para todos',
+      type: 'credits',
+      help: 'Límite de usuarios (créditos) que va a tener cada admin de esta carga — mismo valor para todos.',
+    },
   ];
+
+  /** Descarga un CSV de ejemplo con el formato ideal para la carga masiva de administradores. */
+  function descargarPlantillaAdmins() {
+    descargarPlantillaCSV(
+      ['usuario', 'password', 'email', 'empresa'],
+      ['admin_ejemplo', 'ContraseñaSegura123', 'contacto@empresa.com', 'Mi Empresa SA'],
+      'plantilla_administradores.csv'
+    );
+  }
 
   /** El usuario sube CUALQUIER CSV (sin formato fijo) — acá solo lo leemos
    * en filas crudas; el mapeo de columnas lo elige él en el modal siguiente. */
@@ -327,6 +343,10 @@ export default function SuperAdminDashboard() {
   function handleCsvMappingConfirm(selection) {
     const { dataRows } = csvMapping;
     setCsvMapping(null);
+
+    const limiteUsuariosParaTodos = selection.limiteUsuarios.ilimitado
+      ? null
+      : Number(selection.limiteUsuarios.valor);
 
     const rows = [];
     const errors = [];
@@ -373,9 +393,14 @@ export default function SuperAdminDashboard() {
         ? `<br/><span class="text-yellow-400">${errors.length} fila(s) se van a omitir por error (usuario duplicado o datos faltantes).</span>`
         : '';
 
+    const avisoCreditos =
+      limiteUsuariosParaTodos === null
+        ? `<br/><span class="text-yellow-400">⚠ Todos van a quedar con créditos ILIMITADOS.</span>`
+        : `<br/>Cada uno va a quedar con <strong>${limiteUsuariosParaTodos}</strong> crédito(s).`;
+
     setConfirm({
       title: 'Carga Masiva de Administradores',
-      message: `Se van a crear <strong>${rows.length}</strong> administrador(es) nuevo(s) a partir del archivo.${resumenErrores}`,
+      message: `Se van a crear <strong>${rows.length}</strong> administrador(es) nuevo(s) a partir del archivo.${avisoCreditos}${resumenErrores}`,
       icon: 'create',
       btnClass: 'bg-gradient-to-r from-one-cyan/30 to-one-pink/30 border border-one-cyan/50',
       onConfirm: async () => {
@@ -394,6 +419,7 @@ export default function SuperAdminDashboard() {
               packStatus: row.pack ? '01' : '',
               nameEmpresa: row.empresa,
               logoLink: '',
+              limiteUsuarios: limiteUsuariosParaTodos,
             });
             creados++;
           } catch (error) {
@@ -873,6 +899,18 @@ export default function SuperAdminDashboard() {
                   onChange={handleBulkCsvFile}
                 />
               </label>
+              <button
+                type="button"
+                onClick={descargarPlantillaAdmins}
+                className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-semibold text-gray-300 transition-all hover:border-white/25 hover:bg-white/10"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Descargar plantilla de ejemplo
+              </button>
             </div>
 
             {bulkResult && (

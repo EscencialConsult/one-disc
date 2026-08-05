@@ -29,7 +29,8 @@ create table if not exists admins (
   estado            text not null default 'activo',      -- activo | inactivo
   pack_status       text not null default '',
   name_empresa      text not null default '',
-  logo_empresa_link text not null default ''
+  logo_empresa_link text not null default '',
+  limite_usuarios   integer               -- créditos: null = sin límite (1 crédito = 1 usuario)
   -- Las columnas API_usuarios / API_respuestas / API_visualizacionderespuestas
   -- de la planilla original ya no existen: la base única las reemplaza.
 );

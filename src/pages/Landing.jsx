@@ -504,9 +504,10 @@ export default function Landing() {
         <Footer />
       </div>
 
-      {loginMode && (
-        <LoginModal mode={loginMode} onClose={() => setLoginMode(null)} onModeChange={setLoginMode} />
-      )}
+      {/* Siempre montado (no `loginMode && ...`): así, si el usuario clickea afuera
+          y el modal se cierra, el componente sigue vivo y NO pierde lo que ya
+          había escrito (usuario/contraseña) — vuelve a abrir tal cual lo dejó. */}
+      <LoginModal mode={loginMode} onClose={() => setLoginMode(null)} onModeChange={setLoginMode} />
     </>
   );
 }

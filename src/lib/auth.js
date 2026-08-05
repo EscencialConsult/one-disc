@@ -85,6 +85,11 @@ export const Auth = {
           logoEmpresa: String(adminEncontrado.logo_empresa_link || '').trim(),
           nombreEmpresa: String(adminEncontrado.name_empresa || '').trim(),
           adminId: adminEncontrado.id,
+          // Créditos: null/undefined = sin límite (ilimitado).
+          limiteUsuarios:
+            adminEncontrado.limite_usuarios === null || adminEncontrado.limite_usuarios === undefined
+              ? null
+              : Number(adminEncontrado.limite_usuarios),
         });
         return { success: true };
       }

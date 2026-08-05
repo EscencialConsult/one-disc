@@ -380,6 +380,13 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const session = Session.get();
   const isAdminLider = session && (session.packStatus === '01' || session.packStatus === '1');
+  // Créditos: null/undefined = sin límite. Se cachea en sesión al loguear
+  // (mismo patrón que packStatus) — si el SuperAdmin suma créditos en medio
+  // de la sesión, se reflejan recién en el próximo login.
+  const limiteUsuarios =
+    session && session.limiteUsuarios !== null && session.limiteUsuarios !== undefined
+      ? Number(session.limiteUsuarios)
+      : null;
 
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState('');
@@ -495,6 +502,13 @@ export default function AdminDashboard() {
     }
     if (users.some((u) => u.usuario.toLowerCase() === usuario.toLowerCase())) {
       showToast(`El usuario "${usuario}" ya existe`, 'error');
+      return;
+    }
+    if (limiteUsuarios !== null && users.length >= limiteUsuarios) {
+      showToast(
+        `Llegaste al límite de ${limiteUsuarios} usuario(s) de tu cuenta. Contactá a tu administrador para sumar más créditos.`,
+        'error'
+      );
       return;
     }
 
@@ -648,6 +662,13 @@ export default function AdminDashboard() {
       return;
     }
 
+    const cupoDisponible = limiteUsuarios !== null ? Math.max(0, limiteUsuarios - users.length) : Infinity;
+    const seVanASaltar = Math.max(0, rows.length - cupoDisponible);
+    const avisoCredito =
+      seVanASaltar > 0
+        ? `<br/><span class="text-red-400">Tu cuenta tiene ${cupoDisponible} crédito(s) disponible(s) — ${seVanASaltar} fila(s) no se van a crear por falta de créditos.</span>`
+        : '';
+
     const resumenErrores =
       errors.length > 0
         ? `<br/><span class="text-yellow-400">${errors.length} fila(s) se van a omitir por error (usuario duplicado o datos inválidos).</span>`
@@ -655,7 +676,7 @@ export default function AdminDashboard() {
 
     setConfirm({
       title: 'Carga Masiva de Usuarios',
-      message: `Se van a crear <strong>${rows.length}</strong> usuario(s) nuevo(s) a partir del archivo.${resumenErrores}`,
+      message: `Se van a crear <strong>${Math.min(rows.length, cupoDisponible)}</strong> usuario(s) nuevo(s) a partir del archivo.${avisoCredito}${resumenErrores}`,
       icon: 'create',
       btnClass: 'bg-gradient-to-r from-one-cyan/30 to-one-pink/30 border border-one-cyan/50',
       onConfirm: async () => {
@@ -665,6 +686,10 @@ export default function AdminDashboard() {
 
         for (let i = 0; i < rows.length; i++) {
           const row = rows[i];
+          if (limiteUsuarios !== null && users.length + creados >= limiteUsuarios) {
+            erroresCarga.push({ usuario: row.usuario, motivo: 'Límite de créditos alcanzado, no se creó' });
+            continue;
+          }
           setOverlay({ msg: `Creando usuarios... (${i + 1}/${rows.length})`, sub: row.nombre });
           try {
             await createUsuario({
@@ -826,6 +851,19 @@ export default function AdminDashboard() {
                   {session ? `${session.userName} (${session.userEmail})` : ''}
                 </p>
               </div>
+              {limiteUsuarios !== null && (
+                <span
+                  title={`Créditos: ${users.length} consumido(s) de ${limiteUsuarios} total`}
+                  className={`inline-flex flex-col items-center gap-0 rounded-xl border px-3 py-1.5 text-center ${
+                    users.length >= limiteUsuarios
+                      ? 'border-red-500/40 bg-red-500/10 text-red-300'
+                      : 'border-one-cyan/30 bg-one-cyan/10 text-one-cyan'
+                  }`}
+                >
+                  <span className="text-xs font-black">{Math.max(0, limiteUsuarios - users.length)} créditos disponibles</span>
+                  <span className="text-[10px] font-medium opacity-70">{users.length}/{limiteUsuarios} usados</span>
+                </span>
+              )}
             </div>
 
             <div className="flex items-center gap-3">

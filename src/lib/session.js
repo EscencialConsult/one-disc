@@ -20,6 +20,13 @@ export const Session = {
     // IDs de Supabase (reemplazan a apiUsuarios/apiRespuestas/apiVisualizacion)
     if (userData.adminId) sessionStorage.setItem('adminId', userData.adminId);
 
+    // Créditos del admin: '' = sin límite (sessionStorage solo guarda strings,
+    // así que null se codifica como '' y se decodifica de vuelta en get()).
+    sessionStorage.setItem(
+      'limiteUsuarios',
+      userData.limiteUsuarios === null || userData.limiteUsuarios === undefined ? '' : String(userData.limiteUsuarios)
+    );
+
     if (userData.rol === CONFIG.roles.USER) {
       sessionStorage.setItem('usuarioAdmin', userData.userAdmin || '');
       sessionStorage.setItem('emailAdmin', userData.emailAdmin || '');
@@ -48,6 +55,11 @@ export const Session = {
       nombreEmpresa: sessionStorage.getItem('nombreEmpresa') || '',
       adminId: sessionStorage.getItem('adminId') || '',
       userId: sessionStorage.getItem('userId') || '',
+      // Créditos: '' (o clave ausente, sesiones viejas) = sin límite.
+      limiteUsuarios: (() => {
+        const v = sessionStorage.getItem('limiteUsuarios');
+        return v === null || v === '' ? null : Number(v);
+      })(),
       usuarioAdmin: sessionStorage.getItem('usuarioAdmin') || '',
       emailAdmin: sessionStorage.getItem('emailAdmin') || '',
     };

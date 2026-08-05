@@ -121,7 +121,7 @@ export async function getAdmins() {
   return data || [];
 }
 
-export async function createAdmin({ usuario, password, email, packStatus, nameEmpresa, logoLink }) {
+export async function createAdmin({ usuario, password, email, packStatus, nameEmpresa, logoLink, limiteUsuarios }) {
   const { data, error } = await supabase
     .from('admins')
     .insert({
@@ -131,6 +131,7 @@ export async function createAdmin({ usuario, password, email, packStatus, nameEm
       pack_status: packStatus || '',
       name_empresa: nameEmpresa || '',
       logo_empresa_link: logoLink || '',
+      limite_usuarios: limiteUsuarios ?? null,
     })
     .select()
     .single();
@@ -164,6 +165,20 @@ export async function uploadLogo(adminId, file) {
   // no muestre el logo viejo cuando se reemplaza.
   const { data } = supabase.storage.from('logos').getPublicUrl(path);
   return `${data.publicUrl}?t=${Date.now()}`;
+}
+
+/**
+ * Cuántos usuarios (créditos consumidos) tiene cada admin — una sola consulta
+ * liviana (trae solo la columna admin_id) en vez de N consultas, una por admin.
+ */
+export async function getUsuarioCountsByAdmin() {
+  const { data, error } = await supabase.from('usuarios').select('admin_id');
+  if (error) throw error;
+  const counts = {};
+  (data || []).forEach((row) => {
+    counts[row.admin_id] = (counts[row.admin_id] || 0) + 1;
+  });
+  return counts;
 }
 
 /* ═══ USUARIOS (hoja "Usuarios") ═══ */

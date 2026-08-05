@@ -5,7 +5,7 @@ import { ArrowUpTrayIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import { CONFIG } from '../lib/config.js';
 import { Session } from '../lib/session.js';
 import { Auth } from '../lib/auth.js';
-import { getAdmins, createAdmin, updateAdmin, deleteAdmin, uploadLogo } from '../lib/api.js';
+import { getAdmins, createAdmin, updateAdmin, deleteAdmin, uploadLogo, getUsuarioCountsByAdmin } from '../lib/api.js';
 import Footer from '../components/Footer.jsx';
 import {
   EyeButton,
@@ -109,7 +109,11 @@ export default function SuperAdminDashboard() {
     empresa: '',
     logo: '',
     pack: false,
+    limiteUsuarios: '',
+    ilimitado: false,
   });
+  const [creditosAdmin, setCreditosAdmin] = useState(null); // { id, usuario, limiteUsuarios, consumidos } — modal de editar créditos
+  const [creditosForm, setCreditosForm] = useState({ ilimitado: false, sumar: '0' });
   // El admin todavía no existe al elegir el logo en el form de creación,
   // así que guardamos el File y lo subimos recién después de crearlo.
   const [formLogoFile, setFormLogoFile] = useState(null);
@@ -123,7 +127,7 @@ export default function SuperAdminDashboard() {
   async function loadAdmins() {
     setOverlay({ msg: 'Cargando administradores...' });
     try {
-      const rows = await getAdmins();
+      const [rows, consumos] = await Promise.all([getAdmins(), getUsuarioCountsByAdmin()]);
       setAdmins(
         rows.map((row) => ({
           id: row.id,
@@ -135,6 +139,10 @@ export default function SuperAdminDashboard() {
           packStatus: String(row.pack_status || '').trim(),
           empresa: String(row.name_empresa || '').trim(),
           logo: String(row.logo_empresa_link || '').trim(),
+          // Créditos: null = sin límite. consumidos = usuarios ya creados bajo este admin.
+          limiteUsuarios:
+            row.limite_usuarios === null || row.limite_usuarios === undefined ? null : Number(row.limite_usuarios),
+          consumidos: consumos[row.id] || 0,
         }))
       );
     } catch (error) {
@@ -188,6 +196,7 @@ export default function SuperAdminDashboard() {
     const empresa = form.empresa.trim();
     const logo = form.logo.trim();
     const packStatusValue = form.pack ? '01' : '';
+    const limiteTexto = form.limiteUsuarios.trim();
 
     if (!usuario || !password || !email || !empresa) {
       showToast('Completá todos los campos obligatorios', 'error');
@@ -197,6 +206,11 @@ export default function SuperAdminDashboard() {
       showToast(`El usuario "${usuario}" ya existe`, 'error');
       return;
     }
+    if (!form.ilimitado && (limiteTexto === '' || !/^\d+$/.test(limiteTexto) || Number(limiteTexto) < 0)) {
+      showToast('Ingresá el límite de créditos (un número entero) o marcá "Créditos ilimitados"', 'error');
+      return;
+    }
+    const limiteUsuarios = form.ilimitado ? null : Number(limiteTexto);
 
     setConfirm({
       title: 'Crear Administrador',
@@ -216,6 +230,7 @@ export default function SuperAdminDashboard() {
             packStatus: packStatusValue,
             nameEmpresa: empresa,
             logoLink: logo,
+            limiteUsuarios,
           });
 
           // Si eligió un archivo, lo subimos ahora que ya existe el admin
@@ -227,7 +242,7 @@ export default function SuperAdminDashboard() {
           }
 
           showToast(`Administrador "${usuario}" creado. Plataforma ACTIVADA.`, 'success');
-          setForm({ usuario: '', password: '', email: '', empresa: '', logo: '', pack: false });
+          setForm({ usuario: '', password: '', email: '', empresa: '', logo: '', pack: false, limiteUsuarios: '', ilimitado: false });
           setFormLogoFile(null);
           setFormLogoPreview('');
           loadAdmins();
@@ -512,6 +527,65 @@ export default function SuperAdminDashboard() {
     });
   }
 
+  /** Abre el modal de créditos de un admin, precargado con su estado actual. */
+  function abrirModalCreditos(admin) {
+    setCreditosAdmin(admin);
+    setCreditosForm({ ilimitado: admin.limiteUsuarios === null, sumar: '0' });
+  }
+
+  /** Guarda los cambios de créditos: pasa a ilimitado, o suma/resta al total actual. */
+  function guardarCreditos(e) {
+    e.preventDefault();
+    const admin = creditosAdmin;
+
+    if (creditosForm.ilimitado) {
+      setConfirm({
+        title: 'Créditos Ilimitados',
+        message: `¿Dejar a <strong>${sanitizeText(admin.usuario)}</strong> con créditos <strong>ilimitados</strong>? Va a poder crear usuarios sin ningún límite.`,
+        icon: 'edit',
+        btnClass: 'bg-yellow-500/30 border border-yellow-500/50 text-yellow-300',
+        onConfirm: async () => {
+          setCreditosAdmin(null);
+          try {
+            await updateAdmin(admin.id, { limite_usuarios: null });
+            showToast(`"${admin.usuario}" ahora tiene créditos ilimitados`, 'success');
+            loadAdmins();
+          } catch (error) {
+            showToast('Error: ' + (error.message || ''), 'error');
+          }
+        },
+      });
+      return;
+    }
+
+    const delta = creditosForm.sumar.trim();
+    if (!/^-?\d+$/.test(delta)) {
+      showToast('Ingresá un número entero (positivo para sumar, negativo para restar)', 'error');
+      return;
+    }
+    const base = admin.limiteUsuarios === null ? 0 : admin.limiteUsuarios;
+    const nuevoLimite = Math.max(0, base + Number(delta));
+    setConfirm({
+      title: 'Actualizar Créditos',
+      message:
+        admin.limiteUsuarios === null
+          ? `¿Asignarle un límite de <strong>${nuevoLimite}</strong> crédito(s) a <strong>${sanitizeText(admin.usuario)}</strong> (hoy ilimitado)?`
+          : `<strong>${sanitizeText(admin.usuario)}</strong> pasa de <strong>${admin.limiteUsuarios}</strong> a <strong>${nuevoLimite}</strong> crédito(s) en total.`,
+      icon: 'edit',
+      btnClass: 'bg-gradient-to-r from-one-cyan/30 to-one-pink/30 border border-one-cyan/50',
+      onConfirm: async () => {
+        setCreditosAdmin(null);
+        try {
+          await updateAdmin(admin.id, { limite_usuarios: nuevoLimite });
+          showToast(`Créditos de "${admin.usuario}" actualizados a ${nuevoLimite}`, 'success');
+          loadAdmins();
+        } catch (error) {
+          showToast('Error: ' + (error.message || ''), 'error');
+        }
+      },
+    });
+  }
+
   function logout() {
     Auth.logout();
     navigate(CONFIG.routes.login);
@@ -700,6 +774,39 @@ export default function SuperAdminDashboard() {
               />
             </div>
 
+            <div className="mb-6">
+              <label className="mb-2 block text-sm font-semibold text-gray-300">
+                Límite de Usuarios (créditos) <span className="text-xs font-normal text-gray-500">— 1 crédito = 1 usuario</span>
+              </label>
+              {!form.ilimitado && (
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  className={inputClass + ' mb-3'}
+                  placeholder="Ej: 10, 100, 300..."
+                  value={form.limiteUsuarios}
+                  onChange={(e) => setForm({ ...form, limiteUsuarios: e.target.value })}
+                />
+              )}
+              <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-white/10 bg-white/5 p-3">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-one-cyan"
+                  checked={form.ilimitado}
+                  onChange={(e) => setForm({ ...form, ilimitado: e.target.checked })}
+                />
+                <span className="text-sm">
+                  <span className="font-semibold text-gray-200">Créditos ilimitados</span>
+                  {form.ilimitado && (
+                    <span className="mt-0.5 block text-xs text-yellow-400">
+                      ⚠ Precaución: el administrador va a poder crear usuarios sin ningún límite.
+                    </span>
+                  )}
+                </span>
+              </label>
+            </div>
+
             <div className="group mb-6 flex items-center justify-between rounded-2xl border border-one-cyan/20 bg-one-cyan/5 p-4 transition-all hover:border-one-cyan/40">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-one-cyan/10 text-one-cyan">
@@ -840,12 +947,12 @@ export default function SuperAdminDashboard() {
             <table className="w-full">
               <thead className="bg-gradient-to-r from-one-ink via-one-pink/20 to-one-ink">
                 <tr>
-                  {['Usuario', 'Empresa', 'Email', 'Pack', 'Platform', 'Contraseña', 'Fecha', 'Estado', 'Acciones'].map(
+                  {['Usuario', 'Empresa', 'Email', 'Pack', 'Créditos', 'Platform', 'Contraseña', 'Fecha', 'Estado', 'Acciones'].map(
                     (h, i) => (
                       <th
                         key={h}
                         className={`px-3 py-3 text-xs font-bold uppercase tracking-wider text-gray-300 ${
-                          [3, 4, 7, 8].includes(i) ? 'text-center' : 'text-left'
+                          [3, 4, 5, 8, 9].includes(i) ? 'text-center' : 'text-left'
                         }`}
                       >
                         {h}
@@ -857,7 +964,7 @@ export default function SuperAdminDashboard() {
               <tbody>
                 {pageData.length === 0 ? (
                   <tr>
-                    <td colSpan="9" className="px-6 py-8 text-center text-gray-400">
+                    <td colSpan="10" className="px-6 py-8 text-center text-gray-400">
                       {search.trim() ? `No se encontraron resultados para "${search.trim()}"` : 'Sin datos'}
                     </td>
                   </tr>
@@ -909,6 +1016,37 @@ export default function SuperAdminDashboard() {
                               {isPackEnabled ? 'ON' : 'OFF'}
                             </span>
                           </div>
+                        </td>
+                        <td className="px-3 py-3 text-center">
+                          <button
+                            type="button"
+                            onClick={() => abrirModalCreditos(admin)}
+                            title={
+                              admin.limiteUsuarios === null
+                                ? `${admin.consumidos} usuario(s) creado(s) — créditos ilimitados. Click para editar.`
+                                : `Total: ${admin.limiteUsuarios} · Consumidos: ${admin.consumidos} · Disponibles: ${Math.max(0, admin.limiteUsuarios - admin.consumidos)}`
+                            }
+                            className={`inline-flex flex-col items-center gap-0.5 rounded-xl border px-2.5 py-1.5 text-center transition-all hover:-translate-y-0.5 ${
+                              admin.limiteUsuarios === null
+                                ? 'border-white/15 bg-white/5 text-gray-300 hover:border-white/25'
+                                : admin.consumidos >= admin.limiteUsuarios
+                                  ? 'border-red-500/40 bg-red-500/10 text-red-300 hover:border-red-500/60'
+                                  : 'border-one-cyan/30 bg-one-cyan/10 text-one-cyan hover:border-one-cyan/50'
+                            }`}
+                          >
+                            {admin.limiteUsuarios === null ? (
+                              <span className="text-[11px] font-bold">Ilimitado</span>
+                            ) : (
+                              <>
+                                <span className="text-xs font-black">
+                                  {Math.max(0, admin.limiteUsuarios - admin.consumidos)} disp.
+                                </span>
+                                <span className="text-[10px] font-medium text-gray-500">
+                                  {admin.consumidos}/{admin.limiteUsuarios} usados
+                                </span>
+                              </>
+                            )}
+                          </button>
                         </td>
                         <td className="px-3 py-3 text-center">
                           {/* Con base única Supabase todo admin queda activado al crearse */}
@@ -1152,6 +1290,85 @@ export default function SuperAdminDashboard() {
                   className="flex-1 rounded-full border border-one-cyan/40 bg-gradient-to-r from-one-cyan/20 to-one-pink/20 px-6 py-2.5 text-sm font-bold transition-all hover:border-one-cyan/60"
                 >
                   Guardar Cambios
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Editar Créditos */}
+      {creditosAdmin && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setCreditosAdmin(null)} />
+          <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-white/15 bg-gradient-to-br from-one-ink to-black shadow-2xl backdrop-blur-xl">
+            <div className="flex items-center justify-between border-b border-white/10 bg-gradient-to-r from-one-cyan/10 to-one-pink/10 px-6 py-4">
+              <h3 className="font-title text-lg font-bold">Créditos de {creditosAdmin.usuario}</h3>
+              <button onClick={() => setCreditosAdmin(null)} className="text-gray-400 transition-colors hover:text-white">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+            <form className="p-6" onSubmit={guardarCreditos}>
+              <div className="mb-5 rounded-xl border border-white/10 bg-black/30 p-4 text-sm text-gray-300">
+                {creditosAdmin.limiteUsuarios === null ? (
+                  <span className="font-semibold text-gray-200">Hoy: créditos ilimitados</span>
+                ) : (
+                  <>
+                    Hoy: <strong className="text-gray-200">{creditosAdmin.limiteUsuarios}</strong> total ·{' '}
+                    <strong className="text-gray-200">{creditosAdmin.consumidos}</strong> usados ·{' '}
+                    <strong className="text-one-cyan">{Math.max(0, creditosAdmin.limiteUsuarios - creditosAdmin.consumidos)}</strong> disponibles
+                  </>
+                )}
+              </div>
+
+              {!creditosForm.ilimitado && (
+                <div className="mb-4">
+                  <label className="mb-2 block text-sm font-semibold text-gray-300">Sumar créditos</label>
+                  <input
+                    type="number"
+                    step={1}
+                    className={inputClass}
+                    placeholder="Ej: 10 (o -5 para restar)"
+                    value={creditosForm.sumar}
+                    onChange={(e) => setCreditosForm({ ...creditosForm, sumar: e.target.value })}
+                  />
+                  <p className="mt-1.5 text-[11px] text-gray-500">Positivo para sumar, negativo para restar del total actual.</p>
+                </div>
+              )}
+
+              <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-white/10 bg-white/5 p-3">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-one-cyan"
+                  checked={creditosForm.ilimitado}
+                  onChange={(e) => setCreditosForm({ ...creditosForm, ilimitado: e.target.checked })}
+                />
+                <span className="text-sm">
+                  <span className="font-semibold text-gray-200">Créditos ilimitados</span>
+                  {creditosForm.ilimitado && (
+                    <span className="mt-0.5 block text-xs text-yellow-400">
+                      ⚠ Precaución: el administrador va a poder crear usuarios sin ningún límite.
+                    </span>
+                  )}
+                </span>
+              </label>
+
+              <div className="mt-6 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setCreditosAdmin(null)}
+                  className="flex-1 rounded-full border border-white/20 bg-white/5 px-6 py-2.5 text-sm font-semibold transition-all hover:bg-white/10"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 rounded-full border border-one-cyan/40 bg-gradient-to-r from-one-cyan/20 to-one-pink/20 px-6 py-2.5 text-sm font-bold transition-all hover:border-one-cyan/60"
+                >
+                  Guardar
                 </button>
               </div>
             </form>

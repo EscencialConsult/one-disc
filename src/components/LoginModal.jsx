@@ -18,6 +18,11 @@ export default function LoginModal({ mode, onClose, onModeChange }) {
 
   const isAdmin = mode === 'admin';
 
+  // El componente queda siempre montado en Landing (ver comentario ahí);
+  // este return temprano solo controla si se VE o no, sin desmontarlo —
+  // así usuario/contraseña sobreviven a un cierre por click afuera.
+  if (!mode) return null;
+
   async function handleSubmit(e) {
     e.preventDefault();
     if (!usuario.trim() || !password) {

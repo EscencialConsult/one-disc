@@ -36,6 +36,28 @@ export async function getRespuestasByAdmin(adminId) {
   return (data || []).map(mapRespuesta);
 }
 
+/** Borra de forma definitiva el/los test(s) e informe(s) ya guardados de un
+ * usuario puntual (usado al eliminar un usuario para siempre, no solo
+ * inactivarlo). No borra el PDF ya subido a Storage — solo el registro. */
+export async function deleteRespuestasByUsuario(adminId, usuarioUser) {
+  const { error } = await supabase
+    .from('respuestas')
+    .delete()
+    .eq('admin_id', adminId)
+    .ilike('usuario_user', String(usuarioUser || '').trim());
+  if (error) throw error;
+  return { success: true };
+}
+
+/** Borra de forma definitiva TODOS los tests/informes de un admin — se usa
+ * al eliminar un admin para siempre (sus usuarios se borran solos por
+ * cascada de la base, pero las respuestas no tienen esa cascada). */
+export async function deleteRespuestasByAdmin(adminId) {
+  const { error } = await supabase.from('respuestas').delete().eq('admin_id', adminId);
+  if (error) throw error;
+  return { success: true };
+}
+
 /** Guarda la fila del test (era: POST paso 1 → devuelve row y disc_id). */
 export async function guardarRespuesta({
   adminId,

@@ -5,7 +5,15 @@ import { ArrowUpTrayIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import { CONFIG } from '../lib/config.js';
 import { Session } from '../lib/session.js';
 import { Auth } from '../lib/auth.js';
-import { getAdmins, createAdmin, updateAdmin, deleteAdmin, uploadLogo, getUsuarioCountsByAdmin } from '../lib/api.js';
+import {
+  getAdmins,
+  createAdmin,
+  updateAdmin,
+  deleteAdmin,
+  uploadLogo,
+  getUsuarioCountsByAdmin,
+  deleteRespuestasByAdmin,
+} from '../lib/api.js';
 import Footer from '../components/Footer.jsx';
 import {
   EyeButton,
@@ -496,20 +504,33 @@ export default function SuperAdminDashboard() {
     });
   }
 
+  /** Elimina un admin para siempre (no solo inactivar) — pide confirmación
+   * dos veces seguidas antes de borrar. Sus usuarios se borran solos por
+   * cascada de la base; los tests/informes de esos usuarios no tienen esa
+   * cascada, así que se borran acá explícitamente antes de borrar el admin. */
   function handleDeleteAdmin(admin) {
     setConfirm({
       title: 'Eliminar Administrador',
-      message: `¿Eliminar permanentemente a <strong>${sanitizeText(admin.usuario)}</strong>? Esta acción no se puede deshacer.`,
+      message: `Vas a eliminar al administrador <strong>${sanitizeText(admin.usuario)}</strong>. También se van a borrar todos sus usuarios y, de forma <strong>definitiva</strong>, todos los tests/informes ya completados en su cuenta.`,
       icon: 'delete',
       btnClass: 'bg-red-500/30 border border-red-500/50 text-red-300',
-      onConfirm: async () => {
-        try {
-          await deleteAdmin(admin.id);
-          showToast(`Administrador "${admin.usuario}" eliminado`, 'success');
-          loadAdmins();
-        } catch (error) {
-          showToast('Error: ' + (error.message || ''), 'error');
-        }
+      onConfirm: () => {
+        setConfirm({
+          title: 'Confirmá el borrado definitivo',
+          message: `Esta acción <strong>no se puede deshacer</strong>. ¿Confirmás que querés eliminar a <strong>${sanitizeText(admin.usuario)}</strong> para siempre?`,
+          icon: 'delete',
+          btnClass: 'bg-red-500/30 border border-red-500/50 text-red-300',
+          onConfirm: async () => {
+            try {
+              await deleteRespuestasByAdmin(admin.id);
+              await deleteAdmin(admin.id);
+              showToast(`Administrador "${admin.usuario}" eliminado definitivamente`, 'success');
+              loadAdmins();
+            } catch (error) {
+              showToast('Error: ' + (error.message || ''), 'error');
+            }
+          },
+        });
       },
     });
   }

@@ -12,6 +12,8 @@ import {
   getRespuestasByAdmin,
   createUsuario,
   updateUsuario,
+  deleteUsuario,
+  deleteRespuestasByUsuario,
 } from '../lib/api.js';
 
 // Mismos scripts legacy que usa Userboard para el manual (jsPDF 2.5.1, sin tocar).
@@ -847,6 +849,44 @@ export default function AdminDashboard() {
     });
   }
 
+  /** Elimina un usuario para siempre (no solo inactivar) — pensado para
+   * usuarios cargados mal por error, que de otra forma quedan "inactivos"
+   * acumulándose sin límite. Pide confirmación dos veces seguidas antes de
+   * borrar, y si el usuario ya había completado el test, borra también
+   * su informe/test guardado en el sistema (no queda huérfano). */
+  function handleDeleteUser(user) {
+    const avisoTest = user.testCompletado
+      ? ' Como ya completó el test, también se va a borrar de forma <strong>definitiva</strong> su test/informe guardado en el sistema.'
+      : '';
+    setConfirm({
+      title: 'Eliminar Usuario',
+      message: `Vas a eliminar al usuario <strong>${sanitizeText(user.usuario)}</strong>.${avisoTest}`,
+      icon: 'delete',
+      btnClass: 'bg-red-500/30 border border-red-500/50 text-red-300',
+      onConfirm: () => {
+        setConfirm({
+          title: 'Confirmá el borrado definitivo',
+          message: `Esta acción <strong>no se puede deshacer</strong>. ¿Confirmás que querés eliminar a <strong>${sanitizeText(user.usuario)}</strong> para siempre?`,
+          icon: 'delete',
+          btnClass: 'bg-red-500/30 border border-red-500/50 text-red-300',
+          onConfirm: async () => {
+            try {
+              if (user.testCompletado) {
+                await deleteRespuestasByUsuario(session.adminId, user.usuario);
+              }
+              await deleteUsuario(user.id);
+              showToast(`Usuario "${user.usuario}" eliminado definitivamente`, 'success');
+              loadUsers();
+            } catch (error) {
+              console.error('Error al eliminar usuario:', error);
+              showToast('Error al eliminar: ' + (error.message || ''), 'error');
+            }
+          },
+        });
+      },
+    });
+  }
+
   async function toggleUserPack(user, isEnabled) {
     const nuevoValor = isEnabled ? '1' : '';
     showToast('Actualizando permisos...', 'success');
@@ -1396,6 +1436,16 @@ export default function AdminDashboard() {
                               ) : (
                                 <CheckCircleIcon className="h-4 w-4" />
                               )}
+                            </button>
+                            <button
+                              className="rounded-lg border border-red-500/30 bg-red-500/10 p-2 text-red-400 transition-all hover:bg-red-500/20"
+                              onClick={() => handleDeleteUser(user)}
+                              title="Eliminar"
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <polyline points="3 6 5 6 21 6" />
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                              </svg>
                             </button>
                           </div>
                         </td>

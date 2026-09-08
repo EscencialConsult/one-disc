@@ -112,6 +112,11 @@ for (const det of muestras) {
   verificarGrafica(c.adaptado, 'Adaptado');
   const sumaDelta = L.reduce((a, x) => a + Math.abs(c.natural.neto[x] - c.adaptado.neto[x]), 0);
   check(sumaDelta === c.estabilidad.total, 'la estabilidad es la suma de |Natural − Adaptado|');
+  // Punto 3 / test 1-2 del documento original: variables MAS_L/MENOS_L (§5) trazables
+  // 1:1 a los conteos ya verificados arriba, y su suma da 28 (test 1 y 2 de §23).
+  check(L.every((x) => c.variables[`MAS_${x}`] === c.natural.conteo.mas[x] + c.adaptado.conteo.mas[x]), 'MAS_L = P1 + P2');
+  check(L.reduce((a, x) => a + c.variables[`MAS_${x}`], 0) === 28, 'Σ MAS_D+MAS_I+MAS_S+MAS_C = 28');
+  check(L.reduce((a, x) => a + c.variables[`MENOS_${x}`], 0) === 28, 'Σ MENOS_D+MENOS_I+MENOS_S+MENOS_C = 28');
 }
 console.log(fallas === 0 ? '  OK  todos los invariantes de cálculo' : `  ${fallas} falla(s)`);
 

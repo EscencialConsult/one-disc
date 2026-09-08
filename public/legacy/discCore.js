@@ -217,8 +217,27 @@
       natural, adaptado,
       total: { conteo: cT, neto: nT, valores: valoresTotal, niveles, dominante: dominante(valoresTotal, cT) },
       estabilidad: estabilidad(nN, nA),
+      // Punto 3 del documento original / §5: mismos conteos que `natural.conteo` y
+      // `adaptado.conteo`, con los nombres literales que pide el documento —
+      // aditivo, para trazabilidad y auditoría manual, no reemplaza a `conteo`.
+      variables: variablesLiterales(cN, cA, cT),
       version: 3,
     };
+  }
+
+  /** Variables MAS_D/MENOS_D.../P1_.../P2_... del documento original (§5), a partir
+   *  de los conteos de Parte I, Parte II y total ya calculados por `calcular()`. */
+  function variablesLiterales(cN, cA, cT) {
+    const v = {};
+    LETRAS.forEach((L) => {
+      v[`MAS_${L}`] = cT.mas[L];
+      v[`MENOS_${L}`] = cT.menos[L];
+      v[`P1_MAS_${L}`] = cN.mas[L];
+      v[`P1_MENOS_${L}`] = cN.menos[L];
+      v[`P2_MAS_${L}`] = cA.mas[L];
+      v[`P2_MENOS_${L}`] = cA.menos[L];
+    });
+    return v;
   }
 
   /** Detalle enriquecido pregunta por pregunta (palabra elegida como MÁS y como MENOS). */
@@ -247,6 +266,7 @@
     GAP_DEFINIDO, GAP_MODERADO, GAP_LEVE,
     tieneDetalle, conteos, neto, escala100, dominante, letraSecundaria, nivelDefinicion, etiquetaPerfil,
     nivelIntensidad, polares, celda, rolPorAngulo, letraPorAngulo, estabilidad, calcular, detallePreguntas,
+    variablesLiterales,
   };
 
   if (typeof window !== 'undefined') window.DISCCore = DISCCore;

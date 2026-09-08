@@ -24,6 +24,10 @@ async function generarPDFInforme(data, resultado, respuestasParsed, returnBase64
     });
 
     const nombreCompleto = `${data.Nombre || ""} ${data.Apellido || ""}`.trim();
+    // Tests nuevos traen la letra real por pregunta (data.Detalle) → cálculo del
+    // núcleo (discCore.js). Tests viejos: null → algoritmo anterior, sin cambios.
+    const detalle = (window.DISCCore && data.Detalle && window.DISCCore.tieneDetalle(data.Detalle)) ? data.Detalle : null;
+    const core = detalle ? window.DISCCore.calcular(detalle) : null;
     const fecha = data.Fecha ? new Date(data.Fecha).toLocaleDateString('es-AR', {
       year: 'numeric',
       month: 'long',
@@ -1703,6 +1707,12 @@ async function generarPDFInforme(data, resultado, respuestasParsed, returnBase64
       doc.setFontSize(9);
       const lectura = 'En el test se presentaron 28 grupos de 4 características. Para cada grupo seleccionaste la característica que MÁS te describe y la que MENOS te describe. Los valores "MÁS" indican identificación con ese tipo de comportamiento, mientras que "MENOS" indica rechazo. Cada par (MÁS/MENOS) suma 28, el total de preguntas.';
       y = dibujarTexto(lectura, 20, y, 170, 9, COLORES.textoClaro);
+
+      if (!core) {
+        y += 6;
+        const nota = 'Nota: este test fue tomado con la versión anterior del algoritmo. El gráfico D/I/S/C, la rueda y la comparación Natural/Adaptado son aproximados; los resultados por eje (Activa D/I vs Reservada S/C) son exactos.';
+        y = dibujarTexto(nota, 20, y, 170, 8, COLORES.textoClaro);
+      }
     }
 
     // ========== GRÁFICO DE BARRAS DISC ==========
@@ -1731,13 +1741,13 @@ async function generarPDFInforme(data, resultado, respuestasParsed, returnBase64
           y += 110;
         } else {
           // Si no hay canvas, dibujar gráfico manualmente
-          const discValues = calcularValoresDISC(respuestasParsed);
+          const discValues = core ? core.total.valores : calcularValoresDISC(respuestasParsed);
           dibujarGraficoBarrasManual(15, y, discValues);
           y += 110;
         }
       } catch (error) {
         console.warn('No se pudo capturar el gráfico, dibujando manualmente:', error);
-        const discValues = calcularValoresDISC(respuestasParsed);
+        const discValues = core ? core.total.valores : calcularValoresDISC(respuestasParsed);
         dibujarGraficoBarrasManual(15, y, discValues);
         y += 110;
       }
@@ -2404,15 +2414,25 @@ async function generarRueda() {
       // Interpretación
       const diffDI = Math.abs(resultado.masDI_P1 - resultado.masDI_P2);
       const diffSC = Math.abs(resultado.masSC_P1 - resultado.masSC_P2);
-      const diffTotal = diffDI + diffSC;
+      let diffTotal = diffDI + diffSC;
+      let detalleDiff = `(D/I: ${diffDI}, S/C: ${diffSC})`;
+      // Umbrales del algoritmo anterior (solo MÁS). Con núcleo: MÁS y MENOS en las 4 letras.
+      let corteMuyEstable = 4, corteNucleo = 8;
+      if (core) {
+        const e = core.estabilidad;
+        diffTotal = e.total;
+        detalleDiff = `(D: ${e.porLetra.D}, I: ${e.porLetra.I}, S: ${e.porLetra.S}, C: ${e.porLetra.C} - incluye MAS y MENOS)`;
+        corteMuyEstable = window.DISCCore.ESTABILIDAD.muyEstable;
+        corteNucleo = window.DISCCore.ESTABILIDAD.nucleoEstable;
+      }
 
       let titulo, icono, color, interpretacion;
 
-      if (diffTotal <= 4) {
+      if (diffTotal <= corteMuyEstable) {
         titulo = 'Perfil Muy Estable';
         color = COLORES.S;
         interpretacion = `Tu comportamiento es consistente entre situaciones normales y bajo presión. Las diferencias son mínimas (${diffTotal} puntos de diferencia total). Esto indica que eres auténtico, tu comportamiento natural coincide con tu comportamiento adaptado, no modificas significativamente tu conducta bajo estrés y las personas te perciben como predecible y congruente. Tu entorno laboral actual te permite ser tú mismo, lo cual es positivo. Asegúrate de que este entorno realmente te permita desarrollar todo tu potencial.`;
-      } else if (diffTotal <= 8) {
+      } else if (diffTotal <= corteNucleo) {
         titulo = 'Perfil Adaptable con Núcleo Estable';
         color = COLORES.primario;
         interpretacion = `Muestras cierta adaptación conductual pero mantienes tu esencia. Hay diferencias moderadas (${diffTotal} puntos). Adaptas tu comportamiento según el contexto pero sin forzarte demasiado. Bajo presión, ajustas algunas conductas pero mantienes tu identidad. Tienes flexibilidad conductual sin perder autenticidad. El esfuerzo de adaptación es manejable y sostenible. Este nivel de adaptación es saludable y muestra inteligencia emocional. Monitorea que no aumente con el tiempo.`;
@@ -2434,7 +2454,7 @@ async function generarRueda() {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
       doc.setTextColor(...COLORES.textoClaro);
-      doc.text(`Diferencia total: ${diffTotal} puntos (D/I: ${diffDI}, S/C: ${diffSC})`, 20, y);
+      doc.text(`Diferencia total: ${diffTotal} puntos ${detalleDiff}`, 20, y);
 
       y += 6;
       y = dibujarTexto(interpretacion, 20, y, 170, 9);
@@ -2674,8 +2694,9 @@ async function generarRueda() {
           item.textoI,
           item.textoS,
           item.textoC,
-          item.masGrupo,
-          item.menosGrupo
+          // Con letra real (tests nuevos): la letra exacta elegida; si no, solo el grupo D/I o S/C.
+          item.masLetra ? item.masLetra : item.masGrupo,
+          item.menosLetra ? item.menosLetra : item.menosGrupo
         ];
 
         rowData.forEach((cell, colIndex) => {
@@ -2689,10 +2710,11 @@ async function generarRueda() {
           }
 
           if (colIndex >= 5) {
-            // Badge para MÁS/MENOS
-            const bgColor = cell === 'D/I' ?
+            // Badge para MÁS/MENOS (grupo D/I / S/C, o letra exacta D/I/S/C en tests nuevos)
+            const esActivo = cell === 'D/I' || cell === 'D' || cell === 'I';
+            const bgColor = COLORES[cell] || (esActivo ?
               (colIndex === 5 ? COLORES.D : COLORES.I) :
-              (colIndex === 5 ? COLORES.S : COLORES.C);
+              (colIndex === 5 ? COLORES.S : COLORES.C));
 
             doc.saveGraphicsState();
             doc.setFillColor(...bgColor);
@@ -2823,7 +2845,7 @@ async function generarPDFBase64(data, resultado, respuestasParsed) {
 window.generarPDFInforme = generarPDFInforme;
 window.generarPDFBase64 = generarPDFBase64;
 
-function calcularResultadoParaPDF(rp) {
+function calcularResultadoParaPDF(rp, detalle) {
   const DISC_QUESTIONS_LOCAL = [
     { id:1,D:"Enérgico",I:"Animado",S:"Plácido",C:"Preciso"},{id:2,D:"Competitivo",I:"Expresivo",S:"Leal",C:"Diplomático"},
     {id:3,D:"Directo",I:"Alentador",S:"Bondadoso",C:"Meticuloso"},{id:4,D:"Atrevido",I:"Encantador",S:"Amable",C:"Sistemático"},
@@ -2866,7 +2888,11 @@ function calcularResultadoParaPDF(rp) {
   else if(masDI>masSC&&menosSC>menosDI)tc='consistente_DI';
   else if(masSC>masDI&&menosDI>menosSC)tc='consistente_SC';
   else if((masDI>masSC&&menosDI>menosSC)||(masSC>masDI&&menosSC>menosDI))tc='contradictorio';
-  return{masDI,masSC,menosDI,menosSC,netoDI:masDI-menosDI,netoSC:masSC-menosSC,pctMasDI:pm,pctMasSC:ps,pctMenosDI:pmd,pctMenosSC:pms,nivelMasDI:nv(pm),nivelMasSC:nv(ps),nivelMenosDI:nv(pmd),nivelMenosSC:nv(pms),masDI_P1,masSC_P1,menosDI_P1,menosSC_P1,masDI_P2,masSC_P2,menosDI_P2,menosSC_P2,tipoConsistencia:tc,detallePreguntas:det,preguntasRespondidas:det.length};
+  // Con letra real por pregunta (tests nuevos): el detalle muestra la letra exacta elegida.
+  const detFinal = (typeof window !== 'undefined' && window.DISCCore && window.DISCCore.tieneDetalle(detalle))
+    ? window.DISCCore.detallePreguntas(detalle, DISC_QUESTIONS_LOCAL)
+    : det;
+  return{masDI,masSC,menosDI,menosSC,netoDI:masDI-menosDI,netoSC:masSC-menosSC,pctMasDI:pm,pctMasSC:ps,pctMenosDI:pmd,pctMenosSC:pms,nivelMasDI:nv(pm),nivelMasSC:nv(ps),nivelMenosDI:nv(pmd),nivelMenosSC:nv(pms),masDI_P1,masSC_P1,menosDI_P1,menosSC_P1,masDI_P2,masSC_P2,menosDI_P2,menosSC_P2,tipoConsistencia:tc,detallePreguntas:detFinal,preguntasRespondidas:det.length};
 }
 window.calcularResultadoParaPDF = calcularResultadoParaPDF;
 

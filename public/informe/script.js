@@ -311,8 +311,9 @@ function calcularValoresDISC(respuestas) {
     C: total > 0 ? Math.round((C / total) * 100) : 0
   };
 }
-function renderReport(data, resultado, respuestasParsed) {
+function renderReport(data, resultado, respuestasParsed, detalle) {
   const nombreCompleto = `${data.Nombre || ""} ${data.Apellido || ""}`.trim();
+  const core = detalle ? window.DISCCore.calcular(detalle) : null;
 
   // Header
   document.getElementById('nombreCompleto').textContent = nombreCompleto;
@@ -326,8 +327,9 @@ function renderReport(data, resultado, respuestasParsed) {
   const initials = (data.Nombre || '').charAt(0) + (data.Apellido || '').charAt(0);
   document.getElementById('userAvatar').textContent = initials.toUpperCase();
 
-  // ⭐ NUEVO: Calcular valores DISC para el gráfico de barras
-  const discValues = calcularValoresDISC(respuestasParsed);
+  // Valores D/I/S/C para el gráfico de barras: con detalle, escala real e
+  // independiente por letra (núcleo); sin detalle, la aproximación anterior.
+  const discValues = core ? core.total.valores : calcularValoresDISC(respuestasParsed);
   
   // ⭐ NUEVO: Renderizar gráfico de barras DISC
   if (window.renderDISCBarChart) {
@@ -365,11 +367,11 @@ function renderReport(data, resultado, respuestasParsed) {
   // Dimensiones DISC
   renderDimensiones();
 
-  // Detalle pregunta por pregunta
-  renderDetalle(resultado.detallePreguntas);
+  // Detalle pregunta por pregunta (con detalle: la palabra elegida, no solo D/I o S/C)
+  renderDetalle(detalle ? window.DISCCore.detallePreguntas(detalle, GRUPOS_DISC) : resultado.detallePreguntas);
 
   // ⭐ RUEDA SUCCESS INSIGHTS
-  renderRuedaDISC(respuestasParsed);
+  renderRuedaDISC(respuestasParsed, detalle);
 
   // ⭐ NUEVAS INTERPRETACIONES ESPECÍFICAS
   renderPerfilDominante(resultado);
@@ -377,7 +379,7 @@ function renderReport(data, resultado, respuestasParsed) {
   renderInterpretacionMasEspecifica('interpMasSC', 'SC', resultado.masSC, resultado.pctMasSC, resultado.nivelMasSC);
   renderInterpretacionMenosEspecifica('interpMenosDI', 'DI', resultado.menosDI, resultado.pctMenosDI, resultado.nivelMenosDI);
   renderInterpretacionMenosEspecifica('interpMenosSC', 'SC', resultado.menosSC, resultado.pctMenosSC, resultado.nivelMenosSC);
-  renderInterpretacionPartes(resultado);
+  renderInterpretacionPartes(resultado, core);
   renderImplicacionesPracticas(resultado);
 }
 
@@ -787,19 +789,29 @@ function renderInterpretacionMenosEspecifica(containerId, eje, freq, pct, nivel)
 /**
  * Genera interpretación de comparativa Parte I vs Parte II
  */
-function renderInterpretacionPartes(resultado) {
+function renderInterpretacionPartes(resultado, core) {
   const container = document.getElementById('interpretacionPartes');
   if (!container) return;
 
   const { masDI_P1, masSC_P1, masDI_P2, masSC_P2 } = resultado;
-  
+
   const diffDI = Math.abs(masDI_P1 - masDI_P2);
   const diffSC = Math.abs(masSC_P1 - masSC_P2);
-  const diffTotal = diffDI + diffSC;
+  let diffTotal = diffDI + diffSC;
+  let detalleDiff = `(D/I: ${diffDI}, S/C: ${diffSC})`;
+  // Umbrales del algoritmo anterior (solo MÁS). Con núcleo: MÁS y MENOS en las 4 letras.
+  let corteMuyEstable = 4, corteNucleo = 8;
+  if (core) {
+    const e = core.estabilidad;
+    diffTotal = e.total;
+    detalleDiff = `(D: ${e.porLetra.D}, I: ${e.porLetra.I}, S: ${e.porLetra.S}, C: ${e.porLetra.C} — incluye MÁS y MENOS)`;
+    corteMuyEstable = window.DISCCore.ESTABILIDAD.muyEstable;
+    corteNucleo = window.DISCCore.ESTABILIDAD.nucleoEstable;
+  }
 
   let titulo, icono, color, interpretacion;
 
-  if (diffTotal <= 4) {
+  if (diffTotal <= corteMuyEstable) {
     titulo = "Perfil Muy Estable";
     icono = "🎯";
     color = "#059669";
@@ -812,7 +824,7 @@ function renderInterpretacionPartes(resultado) {
       <li>• Tu entorno laboral actual <strong>te permite ser tú mismo</strong></li>
     </ul>
     <p class="mt-3 text-cyan-200"><strong>Implicación:</strong> Esta estabilidad es positiva, aunque asegúrate de que tu entorno realmente te permita desarrollar todo tu potencial.</p>`;
-  } else if (diffTotal <= 8) {
+  } else if (diffTotal <= corteNucleo) {
     titulo = "Perfil Adaptable con Núcleo Estable";
     icono = "⚖️";
     color = "#f59e0b";
@@ -844,7 +856,7 @@ function renderInterpretacionPartes(resultado) {
       <div class="text-4xl">${icono}</div>
       <div class="flex-1">
         <h3 class="font-exo text-xl font-bold mb-2" style="color: ${color};">${titulo}</h3>
-        <div class="text-xs text-gray-400 font-mono">Diferencia total: ${diffTotal} puntos (D/I: ${diffDI}, S/C: ${diffSC})</div>
+        <div class="text-xs text-gray-400 font-mono">Diferencia total: ${diffTotal} puntos ${detalleDiff}</div>
       </div>
     </div>
     <div class="text-sm leading-relaxed text-gray-300">${interpretacion}</div>
@@ -1013,7 +1025,7 @@ function renderDimensiones() {
   }).join('');
 }
 // ========== RUEDA SUCCESS INSIGHTS ==========
-function renderRuedaDISC(respuestas) {
+function renderRuedaDISC(respuestas, detalle) {
   if (!respuestas || Object.keys(respuestas).length === 0) {
     console.error('No hay respuestas para renderizar la rueda');
     return;
@@ -1032,9 +1044,11 @@ function renderRuedaDISC(respuestas) {
 
   try {
     // Convertir respuestas a coordenadas de rueda
-    const coordenadas = window.discToWheel(respuestas);
-    
+    const coordenadas = window.discToWheel(respuestas, detalle);
+
     console.log('🎯 Coordenadas calculadas:', coordenadas);
+    const rolN = window.DISCCore ? window.DISCCore.rolPorAngulo(coordenadas.natural.angle) : '';
+    const rolA = window.DISCCore ? window.DISCCore.rolPorAngulo(coordenadas.adaptado.angle) : '';
 
     // Renderizar la rueda
 window.renderRuedaSI5("#ruedaSVG", {
@@ -1053,6 +1067,7 @@ if (aBadge) aBadge.textContent = `Celda: ${coordenadas.adaptado.cell}`;
 const nInfo = document.getElementById('naturalInfo');
 if (nInfo) {
   nInfo.innerHTML = `
+    ${rolN ? `<strong>Estilo:</strong> ${rolN}<br>` : ''}
     <strong>Celda:</strong> ${coordenadas.natural.cell}<br>
     <strong>Ángulo:</strong> ${Math.round(coordenadas.natural.angle)}°<br>
     <strong>Intensidad:</strong> ${Math.round(coordenadas.natural.radius * 100)}%
@@ -1062,6 +1077,7 @@ if (nInfo) {
 const aInfo = document.getElementById('adaptadoInfo');
 if (aInfo) {
   aInfo.innerHTML = `
+    ${rolA ? `<strong>Estilo:</strong> ${rolA}<br>` : ''}
     <strong>Celda:</strong> ${coordenadas.adaptado.cell}<br>
     <strong>Ángulo:</strong> ${Math.round(coordenadas.adaptado.angle)}°<br>
     <strong>Intensidad:</strong> ${Math.round(coordenadas.adaptado.radius * 100)}%
@@ -1085,8 +1101,8 @@ function renderDetalle(detallePreguntas) {
       <td style="text-align:center;">${p.textoI}</td>
       <td style="text-align:center;">${p.textoS}</td>
       <td style="text-align:center;">${p.textoC}</td>
-      <td style="text-align:center;"><span class="cell-tag" style="background:${p.masGrupo === 'D/I' ? '#fef2f2' : '#f0fdf4'};color:${p.masGrupo === 'D/I' ? '#dc2626' : '#059669'};">${p.masGrupo}</span></td>
-      <td style="text-align:center;"><span class="cell-tag" style="background:${p.menosGrupo === 'D/I' ? '#fff7ed' : '#eff6ff'};color:${p.menosGrupo === 'D/I' ? '#ea580c' : '#2563eb'};">${p.menosGrupo}</span></td>
+      <td style="text-align:center;"><span class="cell-tag" style="background:${p.masGrupo === 'D/I' ? '#fef2f2' : '#f0fdf4'};color:${p.masGrupo === 'D/I' ? '#dc2626' : '#059669'};">${p.masLetra ? `${p.masPalabra} (${p.masLetra})` : p.masGrupo}</span></td>
+      <td style="text-align:center;"><span class="cell-tag" style="background:${p.menosGrupo === 'D/I' ? '#fff7ed' : '#eff6ff'};color:${p.menosGrupo === 'D/I' ? '#ea580c' : '#2563eb'};">${p.menosLetra ? `${p.menosPalabra} (${p.menosLetra})` : p.menosGrupo}</span></td>
     </tr>`;
 
     if (p.parte === 'I') tbody1.innerHTML += row;
@@ -1180,8 +1196,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
   const resultado = calcularResultadosDISC(datosParsed);
 
+  // Tests nuevos traen la letra real por pregunta (data.Detalle) → cálculo
+  // del núcleo (discCore.js). Tests viejos: null → algoritmo anterior.
+  const detalle = (window.DISCCore && window.DISCCore.tieneDetalle(data.Detalle)) ? data.Detalle : null;
+  window.__discDetalle = detalle;
+  if (!detalle) {
+    const aviso = document.getElementById('avisoVersionAnterior');
+    if (aviso) aviso.classList.remove('hidden');
+  }
+
   // Render everything
-  renderReport(data, resultado, datosParsed.respuestas);
+  renderReport(data, resultado, datosParsed.respuestas, detalle);
   setupNavigation();
 
   // Hide loading, show report

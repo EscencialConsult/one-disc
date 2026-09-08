@@ -38,6 +38,8 @@ import {
   narrativaBrechaCultura,
   nivelRiesgoRelacion,
   obtenerCompatibilidad,
+  calcularPerfilCompleto,
+  afinidadPersonas,
 } from '../lib/discScoring.js';
 import Footer from '../components/Footer.jsx';
 import { LoadingOverlay, useToasts } from './AdminDashboard.jsx';
@@ -62,10 +64,10 @@ const MANUAL_SCRIPTS = [
  */
 
 const DISC_INFO = {
-  D: { nombre: 'Dominante', bg: 'bg-disc-d', text: 'text-disc-d', border: 'border-disc-d/30' },
-  I: { nombre: 'Influyente', bg: 'bg-disc-i', text: 'text-disc-i', border: 'border-disc-i/30' },
-  S: { nombre: 'Sensato', bg: 'bg-disc-s', text: 'text-disc-s', border: 'border-disc-s/30' },
-  C: { nombre: 'Correcto', bg: 'bg-disc-c', text: 'text-disc-c', border: 'border-disc-c/30' },
+  D: { nombre: 'Dominancia', bg: 'bg-disc-d', text: 'text-disc-d', border: 'border-disc-d/30' },
+  I: { nombre: 'Influencia', bg: 'bg-disc-i', text: 'text-disc-i', border: 'border-disc-i/30' },
+  S: { nombre: 'Estabilidad', bg: 'bg-disc-s', text: 'text-disc-s', border: 'border-disc-s/30' },
+  C: { nombre: 'Cumplimiento', bg: 'bg-disc-c', text: 'text-disc-c', border: 'border-disc-c/30' },
 };
 
 function LetraBadge({ letra }) {
@@ -120,6 +122,61 @@ function DireccionRelacion({ persona, contraparte }) {
   );
 }
 
+/**
+ * Afinidad entre dos personas con cálculo real: distancia entre sus cuatro
+ * valores Natural, ejes compartidos y cuánto se adapta cada una bajo presión.
+ * Reemplaza el criterio "misma letra = se llevan bien".
+ */
+function AfinidadReal({ a, b }) {
+  const af = afinidadPersonas(a, b);
+  if (!af) {
+    return (
+      <div className="mb-6 rounded-2xl border border-one-gold/30 bg-one-gold/5 p-5 text-sm text-gray-300">
+        {a.legacy || b.legacy
+          ? 'Al menos uno de los dos tests fue tomado con la versión anterior del algoritmo: la afinidad calculada no está disponible (la letra es aproximada). Los consejos de abajo siguen siendo válidos como referencia por estilo.'
+          : 'No se pudo calcular la afinidad.'}
+      </div>
+    );
+  }
+  const letras = ['D', 'I', 'S', 'C'];
+  const color = af.nivel === 'Alta' ? 'text-green-400' : af.nivel === 'Media' ? 'text-yellow-400' : 'text-red-400';
+  return (
+    <div className="mb-6 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-xl">
+      <div className="flex items-center justify-between border-b border-white/10 bg-gradient-to-r from-one-cyan/10 to-one-pink/10 px-6 py-4">
+        <h3 className="font-title text-lg font-bold">Afinidad calculada</h3>
+        <span className={`font-title text-2xl font-black ${color}`}>{af.pct}% · {af.nivel}</span>
+      </div>
+      <div className="grid grid-cols-1 gap-6 p-6 md:grid-cols-2">
+        <div className="space-y-2">
+          {letras.map((L) => (
+            <div key={L} className="flex items-center gap-3 text-xs">
+              <LetraBadge letra={L} />
+              <div className="flex-1 space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="w-20 shrink-0 truncate text-gray-400">{a.nombre.split(' ')[0]}</span>
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/5"><div className={`h-full ${DISC_INFO[L].bg}`} style={{ width: `${a.vectorNatural[L]}%` }} /></div>
+                  <span className="w-8 text-right font-bold text-gray-300">{a.vectorNatural[L]}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-20 shrink-0 truncate text-gray-400">{b.nombre.split(' ')[0]}</span>
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/5"><div className={`h-full ${DISC_INFO[L].bg} opacity-60`} style={{ width: `${b.vectorNatural[L]}%` }} /></div>
+                  <span className="w-8 text-right font-bold text-gray-300">{b.vectorNatural[L]}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <ul className="space-y-2 text-sm text-gray-300">
+          <li>Similitud de perfiles (4 dimensiones): <strong className="text-gray-100">{af.similitudVector}%</strong></li>
+          <li>Ritmo: {af.compartenRitmo ? <span className="text-green-400">comparten</span> : <span className="text-yellow-400">difieren</span>} · Prioridad: {af.compartenPrioridad ? <span className="text-green-400">comparten</span> : <span className="text-yellow-400">difieren</span>}</li>
+          <li>Cambio bajo presión — {a.nombre.split(' ')[0]}: <strong className="text-gray-100">{af.adaptacionA}</strong> · {b.nombre.split(' ')[0]}: <strong className="text-gray-100">{af.adaptacionB}</strong> <span className="text-gray-500">(0 = idéntico, más alto = más adaptación)</span></li>
+          <li className="text-xs text-gray-500">La afinidad baja si alguno de los dos cambia mucho bajo presión: lo que se ve en calma puede no sostenerse.</li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 function ComparacionPersonas({ personas }) {
   const [usuarioA, setUsuarioA] = useState('');
   const [usuarioB, setUsuarioB] = useState('');
@@ -152,7 +209,7 @@ function ComparacionPersonas({ personas }) {
               <option value="">-- Seleccionar --</option>
               {personas.map((p) => (
                 <option key={p.usuario} value={p.usuario} disabled={p.usuario === usuarioB}>
-                  {p.nombre} ({p.natural})
+                  {p.nombre} ({p.natural}){p.legacy ? ' — versión anterior' : ''}
                 </option>
               ))}
             </select>
@@ -167,7 +224,7 @@ function ComparacionPersonas({ personas }) {
               <option value="">-- Seleccionar --</option>
               {personas.map((p) => (
                 <option key={p.usuario} value={p.usuario} disabled={p.usuario === usuarioA}>
-                  {p.nombre} ({p.natural})
+                  {p.nombre} ({p.natural}){p.legacy ? ' — versión anterior' : ''}
                 </option>
               ))}
             </select>
@@ -188,6 +245,8 @@ function ComparacionPersonas({ personas }) {
               <span className="font-semibold text-gray-200">{personaB.nombre}</span>
             </div>
           </div>
+
+          <AfinidadReal a={personaA} b={personaB} />
 
           <div className="mb-6 rounded-2xl border border-one-cyan/20 bg-one-cyan/5 p-5 text-sm leading-relaxed text-gray-300">
             {narrativaRelacion(personaA.natural, personaB.natural)}
@@ -252,6 +311,11 @@ function InformesTab({ personas, descargandoManual, onDescargarPackLider }) {
                     <div className="flex items-center gap-2">
                       <LetraBadge letra={p.natural} />
                       <span className="text-gray-300">{DISC_INFO[p.natural]?.nombre}</span>
+                      {p.legacy && (
+                        <span className="rounded-full border border-one-gold/30 bg-one-gold/10 px-2 py-0.5 text-[10px] font-semibold text-one-gold" title="Test tomado con la versión anterior del algoritmo: la letra es aproximada">
+                          versión anterior
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-3">
@@ -819,6 +883,7 @@ export default function Rrhh() {
     async function cargar() {
       setLoading(true);
       try {
+        await loadScript('/legacy/discCore.js');
         await loadScript('/legacy/discToWheel.js');
         const [respuestas, usuarios] = await Promise.all([
           getRespuestasByAdmin(session.adminId),
@@ -832,15 +897,20 @@ export default function Rrhh() {
         const calculadas = respuestas
           .filter((r) => r.Respuestas && String(r.Respuestas).trim() !== '')
           .map((r) => {
-            const perfil = calcularPerfilDominante(r.Respuestas);
+            const perfil = calcularPerfilDominante(r.Respuestas, r.Detalle);
             if (!perfil) return null;
+            const completo = calcularPerfilCompleto(r.Detalle); // null en tests viejos
             return {
               nombre: [r.Nombre, r.Apellido].filter(Boolean).join(' ').trim() || r.User,
               usuario: r.User,
               email: r.Email_User || '',
               natural: perfil.natural,
               adaptado: perfil.adaptado,
-              vectorNatural: calcularVectorNatural100(r.Respuestas),
+              // legacy = test tomado antes del arreglo del cálculo (sin letra real por pregunta)
+              legacy: !!perfil.legacy,
+              vectorNatural: calcularVectorNatural100(r.Respuestas, r.Detalle),
+              vectorAdaptado: completo ? completo.vectorAdaptado : null,
+              estabilidad: completo ? completo.estabilidad : null,
               pdfPath: r.pdf_path || '',
               packStatus: packStatusPorUsuario[r.User] || '',
               raw: r,
@@ -864,7 +934,11 @@ export default function Rrhh() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const stats = useMemo(() => calcularStatsEquipo(personas), [personas]);
+  // Los tests viejos (sin letra real) no entran en promedios, cultura ni
+  // compatibilidad: su letra es una aproximación (ver AUDITORIA_DISC_COMRURAL.md).
+  const personasReales = useMemo(() => personas.filter((p) => !p.legacy), [personas]);
+  const cantidadLegacy = personas.length - personasReales.length;
+  const stats = useMemo(() => calcularStatsEquipo(personasReales), [personasReales]);
   const { total, distribucion } = stats;
 
   /** Genera y descarga el Manual Personalizado (Pack Líder) de una persona —
@@ -943,7 +1017,7 @@ export default function Rrhh() {
       </header>
 
       <main className="w-full mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
-        {!loading && !errorCarga && total > 0 && (
+        {!loading && !errorCarga && personas.length > 0 && (
           <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap gap-2 rounded-full border border-white/10 bg-white/5 p-1.5">
               <button
@@ -1004,7 +1078,7 @@ export default function Rrhh() {
           <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-6 text-sm text-red-300">
             {errorCarga}
           </div>
-        ) : total === 0 ? (
+        ) : personas.length === 0 ? (
           <div className="rounded-2xl border border-white/10 bg-white/5 p-10 text-center text-gray-400">
             Todavía no hay tests completados en tu equipo para analizar.
           </div>
@@ -1013,11 +1087,20 @@ export default function Rrhh() {
         ) : tab === 'informes' ? (
           <InformesTab personas={personas} descargandoManual={descargandoManual} onDescargarPackLider={descargarPackLider} />
         ) : tab === 'cultura' ? (
-          <CulturaTab personas={personas} />
+          <CulturaTab personas={personasReales} />
         ) : tab === 'compatibilidad' ? (
-          <CompatibilidadTab personas={personas} />
+          <CompatibilidadTab personas={personasReales} />
+        ) : total === 0 ? (
+          <div className="rounded-2xl border border-one-gold/30 bg-one-gold/5 p-10 text-center text-gray-300">
+            Los {cantidadLegacy} test(s) de tu equipo fueron tomados con la versión anterior del algoritmo y no entran en el análisis de equipo. Los tests nuevos van a aparecer acá automáticamente.
+          </div>
         ) : (
           <>
+            {cantidadLegacy > 0 && (
+              <div className="mb-6 rounded-xl border border-one-gold/30 bg-one-gold/5 px-4 py-3 text-xs text-one-gold">
+                {cantidadLegacy} test(s) tomados con la versión anterior del algoritmo no entran en estos números (ver "Informes").
+              </div>
+            )}
             {/* Mini resumen (KPIs) */}
             <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-6">
               <StatCard value={stats.total} label="Evaluados" colorClass="text-blue-400" borderClass="border-blue-500/20" />

@@ -47,7 +47,18 @@ export function anguloADimension(angle) {
  * Requiere que public/legacy/discToWheel.js ya esté cargado (window.discToWheel).
  * Devuelve null si el string de respuestas está vacío o no se pudo parsear.
  */
-export function calcularPerfilDominante(respuestasString) {
+/** true si el test trae la letra real por pregunta (cálculo nuevo, discCore.js). */
+export function tieneCalculoReal(detalle) {
+  return !!(typeof window !== 'undefined' && window.DISCCore && window.DISCCore.tieneDetalle(detalle));
+}
+
+export function calcularPerfilDominante(respuestasString, detalle) {
+  // Tests nuevos: letra dominante por el valor real de cada letra (misma que
+  // la barra más alta del informe). Tests viejos: ángulo de la rueda legacy.
+  if (tieneCalculoReal(detalle)) {
+    const c = window.DISCCore.calcular(detalle);
+    return { natural: c.natural.dominante, adaptado: c.adaptado.dominante, legacy: false };
+  }
   if (!respuestasString || typeof window.discToWheel !== 'function') return null;
   const parsed = parseRespuestasDisc(respuestasString);
   if (Object.keys(parsed).length === 0) return null;
@@ -56,6 +67,20 @@ export function calcularPerfilDominante(respuestasString) {
   return {
     natural: anguloADimension(natural.angle),
     adaptado: anguloADimension(adaptado.angle),
+    legacy: true,
+  };
+}
+
+/** Perfil completo (tests nuevos): vectores Natural/Adaptado 0-100 y estabilidad. null si es test viejo. */
+export function calcularPerfilCompleto(detalle) {
+  if (!tieneCalculoReal(detalle)) return null;
+  const c = window.DISCCore.calcular(detalle);
+  return {
+    vectorNatural: c.natural.valores,
+    vectorAdaptado: c.adaptado.valores,
+    estabilidad: c.estabilidad,
+    rolNatural: c.natural.polares.rol,
+    rolAdaptado: c.adaptado.polares.rol,
   };
 }
 
@@ -69,7 +94,12 @@ export function calcularPerfilDominante(respuestasString) {
  * (mismo mapeo de preguntas 1-14, mismo +1/-1 por elección) en vez de
  * depender de un valor que el script legacy no expone.
  */
-export function calcularVectorNatural100(respuestasString) {
+export function calcularVectorNatural100(respuestasString, detalle) {
+  // Tests nuevos: escala real e independiente por letra (discCore.js).
+  if (tieneCalculoReal(detalle)) return window.DISCCore.calcular(detalle).natural.valores;
+
+  // Tests viejos: aproximación anterior (la letra específica no se guardó —
+  // ver AUDITORIA_DISC_COMRURAL.md). Se mantiene solo por compatibilidad.
   const respuestas = parseRespuestasDisc(respuestasString);
   let D = 0, I = 0, S = 0, C = 0;
 
@@ -131,7 +161,32 @@ export function promedioVectorEquipo(personas) {
   return { D: Math.round(suma.D / n), I: Math.round(suma.I / n), S: Math.round(suma.S / n), C: Math.round(suma.C / n) };
 }
 
-const DISC_NOMBRES = { D: 'Dominante', I: 'Influyente', S: 'Sensato', C: 'Correcto' };
+/** Nomenclatura única del producto (misma que el Informe/PDF). */
+export const DISC_NOMBRES = { D: 'Dominancia', I: 'Influencia', S: 'Estabilidad', C: 'Cumplimiento' };
+
+/**
+ * Afinidad entre dos personas con cálculo real: no compara "una letra", sino
+ * (a) la distancia entre sus cuatro valores Natural (0-100), (b) si comparten
+ * ritmo y prioridad según su letra dominante, y (c) cuánto se adapta cada uno
+ * bajo presión. Devuelve null si alguna de las dos es un test viejo.
+ */
+export function afinidadPersonas(a, b) {
+  if (!a || !b || a.legacy || b.legacy || !a.vectorNatural || !b.vectorNatural) return null;
+  const letras = ['D', 'I', 'S', 'C'];
+  const distancia = letras.reduce((acc, L) => acc + Math.abs(a.vectorNatural[L] - b.vectorNatural[L]), 0) / letras.length;
+  const similitudVector = Math.max(0, Math.min(100, Math.round(100 - distancia)));
+  const ejesA = DISC_AXIS[a.natural], ejesB = DISC_AXIS[b.natural];
+  const compartenRitmo = ejesA.ritmo === ejesB.ritmo;
+  const compartenPrioridad = ejesA.prioridad === ejesB.prioridad;
+  const bonusEjes = (compartenRitmo ? 5 : 0) + (compartenPrioridad ? 5 : 0);
+  const adaptacionA = a.estabilidad ? a.estabilidad.total : 0;
+  const adaptacionB = b.estabilidad ? b.estabilidad.total : 0;
+  // Si alguno cambia mucho bajo presión, la afinidad "en calma" es menos confiable.
+  const penalAdaptacion = Math.round(Math.max(adaptacionA, adaptacionB) / 4);
+  const pct = Math.max(0, Math.min(100, similitudVector + bonusEjes - penalAdaptacion));
+  const nivel = pct >= 75 ? 'Alta' : pct >= 50 ? 'Media' : 'Baja';
+  return { pct, nivel, similitudVector, compartenRitmo, compartenPrioridad, adaptacionA, adaptacionB };
+}
 
 /** Texto de brecha por eje entre la Cultura Actual (promedio del equipo) y la Cultura Ideal (definida por el Admin). */
 export function narrativaBrechaCultura(actual, ideal) {

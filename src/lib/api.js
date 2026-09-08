@@ -68,6 +68,7 @@ export async function guardarRespuesta({
   apellido,
   emailUser,
   respuestas,
+  detalle,
 }) {
   const { data, error } = await supabase
     .from('respuestas')
@@ -80,6 +81,9 @@ export async function guardarRespuesta({
       apellido: apellido || 'SinApellido',
       email_user: emailUser || 'SinEmail',
       respuestas,
+      // Letra real (D/I/S/C) elegida como MÁS y MENOS en cada pregunta —
+      // el string `respuestas` la pierde (ver AUDITORIA_DISC_COMRURAL.md).
+      detalle: detalle || null,
     })
     .select('id, disc_id')
     .single();
@@ -129,6 +133,8 @@ function mapRespuesta(row) {
     Perfil_Dominante: row.perfil_dominante,
     Perfil: row.perfil_dominante,
     pdf_path: row.pdf_path,
+    // null en los tests anteriores al arreglo del cálculo (siguen por el algoritmo viejo)
+    Detalle: row.detalle || null,
   };
 }
 

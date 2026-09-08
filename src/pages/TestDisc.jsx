@@ -16,6 +16,7 @@ import { loadScripts, unloadLegacyScripts } from '../lib/loadScript.js';
 // Scripts legacy (mismas versiones que el <script> del original)
 const TEST_SCRIPTS = [
   'https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js',
+  '/legacy/discCore.js',
   '/legacy/discToWheel.js',
   '/legacy/ruedaSuccessInsights5niveles.js',
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.3/jspdf.umd.min.js',
@@ -194,6 +195,20 @@ export default function TestDisc() {
     return `{PI: ${t1} - ${p1.join(', ')}} {PII: ${t2} - ${p2.join(', ')}}`;
   }
 
+  /**
+   * Letra REAL (D/I/S/C) elegida como MÁS y como MENOS en cada pregunta.
+   * El string de `buildRespuestas` la pierde (D e I → 5, S y C → 1); este
+   * dato es el que permite calcular D/I/S/C de verdad (ver discCore.js).
+   */
+  function buildDetalle(finalAnswers) {
+    const detalle = {};
+    for (let i = 0; i < TOTAL; i++) {
+      const a = finalAnswers[i];
+      detalle[i + 1] = { mas: a.mas || null, menos: a.menos || null };
+    }
+    return detalle;
+  }
+
   function buildRespuestasParsed(finalAnswers) {
     const p = {};
     let idx = 1;
@@ -211,6 +226,7 @@ export default function TestDisc() {
   async function sendResults() {
     const finalAnswers = answers;
     const respuestasFinal = buildRespuestas(finalAnswers);
+    const detalleFinal = buildDetalle(finalAnswers);
     const now = new Date();
 
     const usuarioAdmin = sessionStorage.getItem('usuarioAdmin') || '';
@@ -232,6 +248,7 @@ export default function TestDisc() {
         apellido: user.lastname || 'SinApellido',
         emailUser: user.email || 'SinEmail',
         respuestas: respuestasFinal,
+        detalle: detalleFinal,
       });
       row = res1.row;
       discId = res1.disc_id;
@@ -260,10 +277,11 @@ export default function TestDisc() {
         Apellido: user.lastname || 'SinApellido',
         Correo: user.email || '',
         Fecha: now.toISOString(),
+        Detalle: detalleFinal, // letra real por pregunta → cálculo nuevo (discCore.js)
       };
 
       // Usa la función expuesta por pdfGenerator.js — una sola fuente de verdad
-      const resultado = window.calcularResultadoParaPDF(respuestasParsed);
+      const resultado = window.calcularResultadoParaPDF(respuestasParsed, detalleFinal);
       resultado.tiempoParte1 = fmtTime(timeStartRef.current, timePart1EndRef.current);
       resultado.tiempoParte2 = fmtTime(timePart1EndRef.current, Date.now());
 
@@ -278,7 +296,7 @@ export default function TestDisc() {
             celdaAdaptada = null;
           if (typeof window.discToWheel === 'function') {
             try {
-              const coords = window.discToWheel(respuestasParsed);
+              const coords = window.discToWheel(respuestasParsed, detalleFinal);
               celdaNatural = coords?.natural?.cell ?? null;
               celdaAdaptada = coords?.adaptado?.cell ?? null;
               console.log('▶ Rueda celdas:', celdaNatural, celdaAdaptada);

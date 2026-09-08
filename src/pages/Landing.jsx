@@ -135,10 +135,10 @@ function Section({ id, children }) {
    fila superior = ritmo rápido, fila inferior = ritmo lento; columna izquierda =
    tareas, columna derecha = personas). */
 const QUADRANTS = [
-  { letter: 'D', name: 'Dominante', color: 'disc-d' },
-  { letter: 'I', name: 'Influyente', color: 'disc-i' },
-  { letter: 'C', name: 'Correcto', color: 'disc-c' },
-  { letter: 'S', name: 'Sensato', color: 'disc-s' },
+  { letter: 'D', name: 'Dominancia', color: 'disc-d' },
+  { letter: 'I', name: 'Influencia', color: 'disc-i' },
+  { letter: 'C', name: 'Cumplimiento', color: 'disc-c' },
+  { letter: 'S', name: 'Estabilidad', color: 'disc-s' },
 ];
 
 const QUADRANT_BG = {
@@ -163,25 +163,25 @@ const INFO_CARDS = [
 
 const STYLE_CARDS = [
   {
-    letter: 'D', name: 'Dominante', aka: 'Determinado · Directo', poblacion: '~3%', ritmo: 'Rápido', enfoque: 'Tareas',
+    letter: 'D', name: 'Dominancia', aka: 'Determinado · Directo', poblacion: '~3%', ritmo: 'Rápido', enfoque: 'Tareas',
     desc: 'Líder natural orientado a metas. No ve problemas, ve obstáculos. Toma el mando cuando nadie lo hace y busca resultados concretos.',
     fear: 'Perder el control o que se aprovechen de él',
     badge: 'border-disc-d/30 bg-disc-d/18 text-disc-d', hover: 'hover:border-disc-d/45', stat: 'text-disc-d',
   },
   {
-    letter: 'I', name: 'Influyente', aka: 'Impulsivo · Inspirador', poblacion: '~11%', ritmo: 'Rápido', enfoque: 'Personas',
+    letter: 'I', name: 'Influencia', aka: 'Impulsivo · Inspirador', poblacion: '~11%', ritmo: 'Rápido', enfoque: 'Personas',
     desc: 'Vendedor nato, positivo y persuasivo. Busca la experiencia, la conexión social y siempre encuentra el lado divertido de las situaciones.',
     fear: 'Perder la estima social o el rechazo',
     badge: 'border-disc-i/30 bg-disc-i/18 text-disc-i', hover: 'hover:border-disc-i/45', stat: 'text-disc-i',
   },
   {
-    letter: 'S', name: 'Sensato', aka: 'Seguro · Estable', poblacion: '~69%', ritmo: 'Lento', enfoque: 'Personas',
+    letter: 'S', name: 'Estabilidad', aka: 'Seguro · Estable', poblacion: '~69%', ritmo: 'Lento', enfoque: 'Personas',
     desc: 'El grupo más grande. Cuidador natural con gran empatía. Pacificador, leal y el pegamento que mantiene unido al equipo.',
     fear: 'Perder la seguridad y los cambios imprevistos',
     badge: 'border-disc-s/30 bg-disc-s/18 text-disc-s', hover: 'hover:border-disc-s/45', stat: 'text-disc-s',
   },
   {
-    letter: 'C', name: 'Correcto', aka: 'Cumplidor · Controlado', poblacion: '~17%', ritmo: 'Lento', enfoque: 'Tareas',
+    letter: 'C', name: 'Cumplimiento', aka: 'Cumplidor · Controlado', poblacion: '~17%', ritmo: 'Lento', enfoque: 'Tareas',
     desc: 'El estudiante eterno. Detallista, perfeccionista y experto en su campo. Cuando tiene un plan, es impecable y minuciosamente pensado.',
     fear: 'Equivocarse o ser criticado',
     badge: 'border-disc-c/30 bg-disc-c/18 text-disc-c', hover: 'hover:border-disc-c/45', stat: 'text-disc-c',
@@ -315,7 +315,7 @@ export default function Landing() {
 
               <p className="mb-8 max-w-[52ch] text-lg leading-[1.7] text-slate-600 max-[560px]:text-base">
                 Plataforma de evaluación basada en el modelo DISC de William Marston. Identificá tu perfil
-                conductual — Dominante, Influyente, Sensato o Correcto — y comprendé cómo interactuás con el
+                conductual — Dominancia, Influencia, Estabilidad o Cumplimiento — y comprendé cómo interactuás con el
                 mundo.
               </p>
 

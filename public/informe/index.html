@@ -88,6 +88,11 @@
   <!-- Main Report -->
   <div id="reportContainer" class="report-container hidden">
 
+    <!-- Tests tomados antes del arreglo del cálculo (sin letra real por pregunta) -->
+    <div id="avisoVersionAnterior" class="hidden bg-amber-500/10 border-b border-amber-500/30 text-amber-200 text-xs text-center px-4 py-2">
+      Este informe corresponde a un test tomado con la versión anterior del algoritmo: el gráfico D/I/S/C, la rueda y la comparación Natural/Adaptado son aproximados. Los resultados por eje (Activa D/I vs Reservada S/C) son exactos.
+    </div>
+
     <!-- Hero Header -->
     <header
       class="hero relative bg-gradient-to-br from-one-ink via-one-pink/40 to-purple-900 pt-16 pb-24 px-6 overflow-hidden">
@@ -662,8 +667,9 @@
               <ul class="space-y-2 text-sm text-gray-300">
                 <li class="flex items-start gap-2">
                   <span class="text-cyan-400 mt-0.5">▸</span>
-                  <span><strong class="text-white">Altura de barras:</strong> Indica la intensidad de cada dimensión.
-                    Valores altos (>60) muestran características predominantes.</span>
+                  <span><strong class="text-white">Altura de barras:</strong> Intensidad de cada dimensión en una escala
+                    independiente de 0 a 100 (elecciones MÁS menos MENOS de esa letra). Las cuatro no suman 100:
+                    60 o más = predominante, 40 o menos = poco marcada.</span>
                 </li>
                 <li class="flex items-start gap-2">
                   <span class="text-cyan-400 mt-0.5">▸</span>
@@ -1161,6 +1167,7 @@
   <!-- jsPDF para generación de PDF -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <!-- Módulos DISC -->
+  <script src="./discCore.js"></script>
   <script src="./discToWheel.js"></script>
   <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script> -->
   <script src="./ruedaSuccessInsights5niveles.js"></script>

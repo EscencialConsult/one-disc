@@ -111,7 +111,15 @@ function radiusToCell(radius, angle) {
   return baseCell + cellIndex;
 }
 
-function discToWheel(respuestas) {
+function discToWheel(respuestas, detalle) {
+  // Tests nuevos (con la letra real por pregunta): cálculo del núcleo
+  // (discCore.js) — media circular y celda alineada con el dibujo de la rueda.
+  // Tests viejos (sin detalle): sigue el cálculo original de abajo, sin cambios.
+  if (detalle && typeof window !== 'undefined' && window.DISCCore && window.DISCCore.tieneDetalle(detalle)) {
+    const c = window.DISCCore.calcular(detalle);
+    return { natural: c.natural.polares, adaptado: c.adaptado.polares, version: 2 };
+  }
+
   const vectorNatural = calcularVectorDISC(respuestas, 1, 14);
   const vectorNaturalNorm = normalizarVector(vectorNatural);
   const coordNatural = vectorToPolares(vectorNaturalNorm);

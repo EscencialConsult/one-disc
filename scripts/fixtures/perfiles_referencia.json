@@ -1,0 +1,992 @@
+{
+  "caso_A": {
+    "doc": "Documento original, Caso A (D=43,I=32,S=7,C=18), reconstruido para la escala nueva.",
+    "esperado": {
+      "principal": "D",
+      "secundaria": "I",
+      "nivel_definicion": "moderado",
+      "ritmoActivoMin": 60,
+      "focoTareasMin": 55
+    },
+    "detalle": {
+      "1": {
+        "mas": "D",
+        "menos": "S"
+      },
+      "2": {
+        "mas": "D",
+        "menos": "I"
+      },
+      "3": {
+        "mas": "D",
+        "menos": "S"
+      },
+      "4": {
+        "mas": "D",
+        "menos": "S"
+      },
+      "5": {
+        "mas": "D",
+        "menos": "S"
+      },
+      "6": {
+        "mas": "D",
+        "menos": "S"
+      },
+      "7": {
+        "mas": "D",
+        "menos": "C"
+      },
+      "8": {
+        "mas": "I",
+        "menos": "S"
+      },
+      "9": {
+        "mas": "I",
+        "menos": "S"
+      },
+      "10": {
+        "mas": "I",
+        "menos": "D"
+      },
+      "11": {
+        "mas": "I",
+        "menos": "C"
+      },
+      "12": {
+        "mas": "S",
+        "menos": "I"
+      },
+      "13": {
+        "mas": "C",
+        "menos": "S"
+      },
+      "14": {
+        "mas": "C",
+        "menos": "S"
+      },
+      "15": {
+        "mas": "D",
+        "menos": "S"
+      },
+      "16": {
+        "mas": "D",
+        "menos": "I"
+      },
+      "17": {
+        "mas": "D",
+        "menos": "S"
+      },
+      "18": {
+        "mas": "D",
+        "menos": "S"
+      },
+      "19": {
+        "mas": "D",
+        "menos": "S"
+      },
+      "20": {
+        "mas": "D",
+        "menos": "C"
+      },
+      "21": {
+        "mas": "D",
+        "menos": "S"
+      },
+      "22": {
+        "mas": "I",
+        "menos": "S"
+      },
+      "23": {
+        "mas": "I",
+        "menos": "S"
+      },
+      "24": {
+        "mas": "I",
+        "menos": "S"
+      },
+      "25": {
+        "mas": "I",
+        "menos": "C"
+      },
+      "26": {
+        "mas": "S",
+        "menos": "I"
+      },
+      "27": {
+        "mas": "C",
+        "menos": "S"
+      },
+      "28": {
+        "mas": "C",
+        "menos": "D"
+      }
+    }
+  },
+  "caso_B": {
+    "doc": "Documento original, Caso B (D=25,I=29,S=25,C=21): balanceado, leve inclinación I.",
+    "esperado": {
+      "principal": "I",
+      "nivel_definicion": "leve",
+      "gapMax": 2
+    },
+    "detalle": {
+      "1": {
+        "mas": "D",
+        "menos": "C"
+      },
+      "2": {
+        "mas": "D",
+        "menos": "S"
+      },
+      "3": {
+        "mas": "D",
+        "menos": "C"
+      },
+      "4": {
+        "mas": "D",
+        "menos": "I"
+      },
+      "5": {
+        "mas": "I",
+        "menos": "S"
+      },
+      "6": {
+        "mas": "I",
+        "menos": "C"
+      },
+      "7": {
+        "mas": "I",
+        "menos": "D"
+      },
+      "8": {
+        "mas": "I",
+        "menos": "C"
+      },
+      "9": {
+        "mas": "I",
+        "menos": "C"
+      },
+      "10": {
+        "mas": "S",
+        "menos": "C"
+      },
+      "11": {
+        "mas": "S",
+        "menos": "D"
+      },
+      "12": {
+        "mas": "S",
+        "menos": "I"
+      },
+      "13": {
+        "mas": "C",
+        "menos": "D"
+      },
+      "14": {
+        "mas": "C",
+        "menos": "S"
+      },
+      "15": {
+        "mas": "D",
+        "menos": "C"
+      },
+      "16": {
+        "mas": "D",
+        "menos": "C"
+      },
+      "17": {
+        "mas": "D",
+        "menos": "I"
+      },
+      "18": {
+        "mas": "D",
+        "menos": "I"
+      },
+      "19": {
+        "mas": "I",
+        "menos": "D"
+      },
+      "20": {
+        "mas": "I",
+        "menos": "S"
+      },
+      "21": {
+        "mas": "I",
+        "menos": "C"
+      },
+      "22": {
+        "mas": "I",
+        "menos": "C"
+      },
+      "23": {
+        "mas": "I",
+        "menos": "S"
+      },
+      "24": {
+        "mas": "S",
+        "menos": "C"
+      },
+      "25": {
+        "mas": "S",
+        "menos": "C"
+      },
+      "26": {
+        "mas": "S",
+        "menos": "D"
+      },
+      "27": {
+        "mas": "C",
+        "menos": "S"
+      },
+      "28": {
+        "mas": "C",
+        "menos": "D"
+      }
+    }
+  },
+  "caso_C": {
+    "doc": "Documento original, Caso C (D=18,I=7,S=32,C=43): C predominante, ritmo pausado, foco tareas.",
+    "esperado": {
+      "principal": "C",
+      "secundaria": "S",
+      "nivel_definicion": "moderado",
+      "ritmoActivoMax": 40,
+      "focoTareasMin": 55
+    },
+    "detalle": {
+      "1": {
+        "mas": "D",
+        "menos": "I"
+      },
+      "2": {
+        "mas": "D",
+        "menos": "I"
+      },
+      "3": {
+        "mas": "I",
+        "menos": "D"
+      },
+      "4": {
+        "mas": "S",
+        "menos": "I"
+      },
+      "5": {
+        "mas": "S",
+        "menos": "I"
+      },
+      "6": {
+        "mas": "S",
+        "menos": "I"
+      },
+      "7": {
+        "mas": "S",
+        "menos": "I"
+      },
+      "8": {
+        "mas": "C",
+        "menos": "I"
+      },
+      "9": {
+        "mas": "C",
+        "menos": "D"
+      },
+      "10": {
+        "mas": "C",
+        "menos": "D"
+      },
+      "11": {
+        "mas": "C",
+        "menos": "I"
+      },
+      "12": {
+        "mas": "C",
+        "menos": "I"
+      },
+      "13": {
+        "mas": "C",
+        "menos": "I"
+      },
+      "14": {
+        "mas": "C",
+        "menos": "S"
+      },
+      "15": {
+        "mas": "D",
+        "menos": "I"
+      },
+      "16": {
+        "mas": "D",
+        "menos": "I"
+      },
+      "17": {
+        "mas": "I",
+        "menos": "D"
+      },
+      "18": {
+        "mas": "S",
+        "menos": "I"
+      },
+      "19": {
+        "mas": "S",
+        "menos": "D"
+      },
+      "20": {
+        "mas": "S",
+        "menos": "I"
+      },
+      "21": {
+        "mas": "S",
+        "menos": "I"
+      },
+      "22": {
+        "mas": "C",
+        "menos": "I"
+      },
+      "23": {
+        "mas": "C",
+        "menos": "S"
+      },
+      "24": {
+        "mas": "C",
+        "menos": "D"
+      },
+      "25": {
+        "mas": "C",
+        "menos": "I"
+      },
+      "26": {
+        "mas": "C",
+        "menos": "I"
+      },
+      "27": {
+        "mas": "C",
+        "menos": "I"
+      },
+      "28": {
+        "mas": "C",
+        "menos": "I"
+      }
+    }
+  },
+  "caso_D": {
+    "doc": "Documento original, Caso D (D=39,I=29,S=11,C=21): D/I con predominio D, ritmo activo, foco tareas.",
+    "esperado": {
+      "principal": "D",
+      "secundaria": "I",
+      "nivel_definicion": "moderado",
+      "ritmoActivoMin": 55,
+      "focoTareasMin": 55
+    },
+    "detalle": {
+      "1": {
+        "mas": "D",
+        "menos": "S"
+      },
+      "2": {
+        "mas": "D",
+        "menos": "S"
+      },
+      "3": {
+        "mas": "D",
+        "menos": "S"
+      },
+      "4": {
+        "mas": "D",
+        "menos": "S"
+      },
+      "5": {
+        "mas": "D",
+        "menos": "C"
+      },
+      "6": {
+        "mas": "D",
+        "menos": "S"
+      },
+      "7": {
+        "mas": "I",
+        "menos": "C"
+      },
+      "8": {
+        "mas": "I",
+        "menos": "C"
+      },
+      "9": {
+        "mas": "I",
+        "menos": "S"
+      },
+      "10": {
+        "mas": "S",
+        "menos": "C"
+      },
+      "11": {
+        "mas": "S",
+        "menos": "I"
+      },
+      "12": {
+        "mas": "S",
+        "menos": "I"
+      },
+      "13": {
+        "mas": "C",
+        "menos": "S"
+      },
+      "14": {
+        "mas": "C",
+        "menos": "D"
+      },
+      "15": {
+        "mas": "D",
+        "menos": "S"
+      },
+      "16": {
+        "mas": "D",
+        "menos": "S"
+      },
+      "17": {
+        "mas": "D",
+        "menos": "C"
+      },
+      "18": {
+        "mas": "D",
+        "menos": "S"
+      },
+      "19": {
+        "mas": "D",
+        "menos": "S"
+      },
+      "20": {
+        "mas": "D",
+        "menos": "S"
+      },
+      "21": {
+        "mas": "I",
+        "menos": "C"
+      },
+      "22": {
+        "mas": "I",
+        "menos": "D"
+      },
+      "23": {
+        "mas": "I",
+        "menos": "S"
+      },
+      "24": {
+        "mas": "S",
+        "menos": "C"
+      },
+      "25": {
+        "mas": "S",
+        "menos": "C"
+      },
+      "26": {
+        "mas": "S",
+        "menos": "I"
+      },
+      "27": {
+        "mas": "C",
+        "menos": "S"
+      },
+      "28": {
+        "mas": "C",
+        "menos": "I"
+      }
+    }
+  },
+  "perfil_plano": {
+    "doc": "Las cuatro letras parejas (neto 0 en las 4) — caso extremo de \"sin letra dominante\".",
+    "esperado": {
+      "nivel_definicion": "mixto",
+      "gapMax": 0
+    },
+    "detalle": {
+      "1": {
+        "mas": "D",
+        "menos": "C"
+      },
+      "2": {
+        "mas": "D",
+        "menos": "I"
+      },
+      "3": {
+        "mas": "D",
+        "menos": "S"
+      },
+      "4": {
+        "mas": "D",
+        "menos": "I"
+      },
+      "5": {
+        "mas": "I",
+        "menos": "D"
+      },
+      "6": {
+        "mas": "I",
+        "menos": "C"
+      },
+      "7": {
+        "mas": "I",
+        "menos": "S"
+      },
+      "8": {
+        "mas": "S",
+        "menos": "C"
+      },
+      "9": {
+        "mas": "S",
+        "menos": "D"
+      },
+      "10": {
+        "mas": "S",
+        "menos": "D"
+      },
+      "11": {
+        "mas": "S",
+        "menos": "I"
+      },
+      "12": {
+        "mas": "C",
+        "menos": "D"
+      },
+      "13": {
+        "mas": "C",
+        "menos": "S"
+      },
+      "14": {
+        "mas": "C",
+        "menos": "S"
+      },
+      "15": {
+        "mas": "D",
+        "menos": "I"
+      },
+      "16": {
+        "mas": "D",
+        "menos": "S"
+      },
+      "17": {
+        "mas": "D",
+        "menos": "S"
+      },
+      "18": {
+        "mas": "D",
+        "menos": "I"
+      },
+      "19": {
+        "mas": "I",
+        "menos": "D"
+      },
+      "20": {
+        "mas": "I",
+        "menos": "D"
+      },
+      "21": {
+        "mas": "I",
+        "menos": "C"
+      },
+      "22": {
+        "mas": "S",
+        "menos": "D"
+      },
+      "23": {
+        "mas": "S",
+        "menos": "C"
+      },
+      "24": {
+        "mas": "S",
+        "menos": "I"
+      },
+      "25": {
+        "mas": "S",
+        "menos": "C"
+      },
+      "26": {
+        "mas": "C",
+        "menos": "S"
+      },
+      "27": {
+        "mas": "C",
+        "menos": "D"
+      },
+      "28": {
+        "mas": "C",
+        "menos": "S"
+      }
+    }
+  },
+  "empate_exacto": {
+    "doc": "D e I empatados exactamente en el neto (ambos +4), S y C por debajo — desempate real.",
+    "esperado": {
+      "nivel_definicion": "mixto",
+      "gapMax": 0,
+      "principalEn": [
+        "D",
+        "I"
+      ]
+    },
+    "detalle": {
+      "1": {
+        "mas": "D",
+        "menos": "S"
+      },
+      "2": {
+        "mas": "D",
+        "menos": "C"
+      },
+      "3": {
+        "mas": "D",
+        "menos": "S"
+      },
+      "4": {
+        "mas": "D",
+        "menos": "I"
+      },
+      "5": {
+        "mas": "D",
+        "menos": "C"
+      },
+      "6": {
+        "mas": "I",
+        "menos": "C"
+      },
+      "7": {
+        "mas": "I",
+        "menos": "C"
+      },
+      "8": {
+        "mas": "I",
+        "menos": "C"
+      },
+      "9": {
+        "mas": "I",
+        "menos": "D"
+      },
+      "10": {
+        "mas": "I",
+        "menos": "S"
+      },
+      "11": {
+        "mas": "S",
+        "menos": "C"
+      },
+      "12": {
+        "mas": "S",
+        "menos": "C"
+      },
+      "13": {
+        "mas": "C",
+        "menos": "S"
+      },
+      "14": {
+        "mas": "C",
+        "menos": "S"
+      },
+      "15": {
+        "mas": "D",
+        "menos": "S"
+      },
+      "16": {
+        "mas": "D",
+        "menos": "S"
+      },
+      "17": {
+        "mas": "D",
+        "menos": "C"
+      },
+      "18": {
+        "mas": "D",
+        "menos": "C"
+      },
+      "19": {
+        "mas": "D",
+        "menos": "S"
+      },
+      "20": {
+        "mas": "I",
+        "menos": "C"
+      },
+      "21": {
+        "mas": "I",
+        "menos": "C"
+      },
+      "22": {
+        "mas": "I",
+        "menos": "C"
+      },
+      "23": {
+        "mas": "I",
+        "menos": "C"
+      },
+      "24": {
+        "mas": "I",
+        "menos": "S"
+      },
+      "25": {
+        "mas": "S",
+        "menos": "C"
+      },
+      "26": {
+        "mas": "S",
+        "menos": "D"
+      },
+      "27": {
+        "mas": "C",
+        "menos": "I"
+      },
+      "28": {
+        "mas": "C",
+        "menos": "S"
+      }
+    }
+  },
+  "adaptacion_D_a_S": {
+    "doc": "Natural D fuerte, Adaptado S fuerte — el caso que hacía divergir Panel RRHH e informe antes del arreglo (§2 de PROPUESTA_CONSISTENCIA_DISC.md).",
+    "esperado": {
+      "principalNatural": "D",
+      "principalAdaptado": "S"
+    },
+    "detalle": {
+      "1": {
+        "mas": "D",
+        "menos": "S"
+      },
+      "2": {
+        "mas": "D",
+        "menos": "C"
+      },
+      "3": {
+        "mas": "D",
+        "menos": "C"
+      },
+      "4": {
+        "mas": "D",
+        "menos": "S"
+      },
+      "5": {
+        "mas": "D",
+        "menos": "S"
+      },
+      "6": {
+        "mas": "D",
+        "menos": "C"
+      },
+      "7": {
+        "mas": "D",
+        "menos": "C"
+      },
+      "8": {
+        "mas": "D",
+        "menos": "I"
+      },
+      "9": {
+        "mas": "D",
+        "menos": "S"
+      },
+      "10": {
+        "mas": "I",
+        "menos": "S"
+      },
+      "11": {
+        "mas": "I",
+        "menos": "S"
+      },
+      "12": {
+        "mas": "I",
+        "menos": "S"
+      },
+      "13": {
+        "mas": "S",
+        "menos": "C"
+      },
+      "14": {
+        "mas": "C",
+        "menos": "D"
+      },
+      "15": {
+        "mas": "D",
+        "menos": "S"
+      },
+      "16": {
+        "mas": "I",
+        "menos": "D"
+      },
+      "17": {
+        "mas": "S",
+        "menos": "D"
+      },
+      "18": {
+        "mas": "S",
+        "menos": "C"
+      },
+      "19": {
+        "mas": "S",
+        "menos": "I"
+      },
+      "20": {
+        "mas": "S",
+        "menos": "D"
+      },
+      "21": {
+        "mas": "S",
+        "menos": "D"
+      },
+      "22": {
+        "mas": "S",
+        "menos": "D"
+      },
+      "23": {
+        "mas": "S",
+        "menos": "D"
+      },
+      "24": {
+        "mas": "S",
+        "menos": "I"
+      },
+      "25": {
+        "mas": "S",
+        "menos": "I"
+      },
+      "26": {
+        "mas": "C",
+        "menos": "I"
+      },
+      "27": {
+        "mas": "C",
+        "menos": "D"
+      },
+      "28": {
+        "mas": "C",
+        "menos": "I"
+      }
+    }
+  },
+  "adaptacion_C_a_I": {
+    "doc": "Natural C fuerte, Adaptado I fuerte — mismo fenómeno con el otro par diagonal.",
+    "esperado": {
+      "principalNatural": "C",
+      "principalAdaptado": "I"
+    },
+    "detalle": {
+      "1": {
+        "mas": "D",
+        "menos": "I"
+      },
+      "2": {
+        "mas": "D",
+        "menos": "S"
+      },
+      "3": {
+        "mas": "D",
+        "menos": "I"
+      },
+      "4": {
+        "mas": "I",
+        "menos": "D"
+      },
+      "5": {
+        "mas": "S",
+        "menos": "C"
+      },
+      "6": {
+        "mas": "C",
+        "menos": "I"
+      },
+      "7": {
+        "mas": "C",
+        "menos": "I"
+      },
+      "8": {
+        "mas": "C",
+        "menos": "I"
+      },
+      "9": {
+        "mas": "C",
+        "menos": "I"
+      },
+      "10": {
+        "mas": "C",
+        "menos": "I"
+      },
+      "11": {
+        "mas": "C",
+        "menos": "S"
+      },
+      "12": {
+        "mas": "C",
+        "menos": "S"
+      },
+      "13": {
+        "mas": "C",
+        "menos": "S"
+      },
+      "14": {
+        "mas": "C",
+        "menos": "S"
+      },
+      "15": {
+        "mas": "D",
+        "menos": "S"
+      },
+      "16": {
+        "mas": "I",
+        "menos": "S"
+      },
+      "17": {
+        "mas": "I",
+        "menos": "C"
+      },
+      "18": {
+        "mas": "I",
+        "menos": "S"
+      },
+      "19": {
+        "mas": "I",
+        "menos": "C"
+      },
+      "20": {
+        "mas": "I",
+        "menos": "C"
+      },
+      "21": {
+        "mas": "I",
+        "menos": "C"
+      },
+      "22": {
+        "mas": "I",
+        "menos": "S"
+      },
+      "23": {
+        "mas": "I",
+        "menos": "C"
+      },
+      "24": {
+        "mas": "I",
+        "menos": "S"
+      },
+      "25": {
+        "mas": "S",
+        "menos": "C"
+      },
+      "26": {
+        "mas": "S",
+        "menos": "I"
+      },
+      "27": {
+        "mas": "S",
+        "menos": "C"
+      },
+      "28": {
+        "mas": "C",
+        "menos": "D"
+      }
+    }
+  },
+  "legacy_sin_detalle": {
+    "doc": "Test tomado antes del arreglo del cálculo: no guardó la letra exacta por pregunta.",
+    "esperado": {
+      "tieneDetalle": false,
+      "calcularEsNull": true
+    },
+    "detalle": null
+  }
+}

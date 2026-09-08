@@ -333,10 +333,27 @@ function renderReport(data, resultado, respuestasParsed, detalle) {
   // usaba el promedio de las 28 preguntas, que no es un perfil de nadie:
   // alguien que es D en calma y S bajo presión no es "D-S moderado".
   const discValues = core ? core.natural.valores : calcularValoresDISC(respuestasParsed);
-  
+
   // ⭐ NUEVO: Renderizar gráfico de barras DISC
   if (window.renderDISCBarChart) {
     window.renderDISCBarChart('discBarChartContainer', discValues);
+  }
+
+  // Segundo gráfico: perfil Adaptado (Parte II, bajo presión). §12.2 de
+  // PROPUESTA_CONSISTENCIA_DISC.md: dos gráficos, no uno superpuesto, para
+  // no dar a entender que el Natural es "el" perfil único de la persona.
+  // Solo con tests que tienen `detalle` real — los tests legacy no tienen
+  // un vector Adaptado confiable calculado de forma independiente (ver
+  // AUDITORIA_DISC_COMRURAL.md), así que la tarjeta se oculta en vez de
+  // mostrar un dato inventado.
+  const cardAdaptado = document.getElementById('discBarChartCardAdaptado');
+  if (core && cardAdaptado) {
+    cardAdaptado.style.display = '';
+    if (window.renderDISCBarChart) {
+      window.renderDISCBarChart('discBarChartContainerAdaptado', core.adaptado.valores);
+    }
+  } else if (cardAdaptado) {
+    cardAdaptado.style.display = 'none';
   }
 
   // Score cards

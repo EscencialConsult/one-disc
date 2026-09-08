@@ -272,13 +272,14 @@ async function generarPDFInforme(data, resultado, respuestasParsed, returnBase64
         { titulo: 'Consideraciones Importantes', pag: 12 },
         { titulo: 'Resumen de Resultados', pag: 13 },
         { titulo: 'Gráfico de Barras DISC', pag: 14 },
-        { titulo: 'Rueda Success Insights', pag: 15 },
-        { titulo: 'Análisis Interpretativo', pag: 16 },
-        { titulo: 'Perfil Conductual Dominante', pag: 17 },
-        { titulo: 'Consistencia del Perfil', pag: 18 },
-        { titulo: 'Comparativa Parte I vs Parte II', pag: 19 },
-        { titulo: 'Implicaciones Prácticas', pag: 20 },
-        { titulo: 'Detalle Pregunta por Pregunta', pag: 21 }
+        { titulo: 'Gráfico de Barras DISC — Bajo Presión', pag: 15 },
+        { titulo: 'Rueda Success Insights', pag: 16 },
+        { titulo: 'Análisis Interpretativo', pag: 17 },
+        { titulo: 'Perfil Conductual Dominante', pag: 18 },
+        { titulo: 'Consistencia del Perfil', pag: 19 },
+        { titulo: 'Comparativa Parte I vs Parte II', pag: 20 },
+        { titulo: 'Implicaciones Prácticas', pag: 21 },
+        { titulo: 'Detalle Pregunta por Pregunta', pag: 22 }
       ];
 
       secciones.forEach((seccion, index) => {
@@ -1775,6 +1776,33 @@ async function generarPDFInforme(data, resultado, respuestasParsed, returnBase64
       });
     }
 
+    // ========== GRÁFICO DE BARRAS DISC — ADAPTADO (bajo presión) ==========
+    // §12.2 de PROPUESTA_CONSISTENCIA_DISC.md: dos gráficos, no uno
+    // superpuesto, para no dar a entender que el Natural es "el" perfil
+    // único de la persona. Solo para tests con `detalle` real — los tests
+    // legacy no tienen un vector Adaptado confiable calculado de forma
+    // independiente (ver AUDITORIA_DISC_COMRURAL.md), así que esta página
+    // directamente no se genera para ellos.
+    async function generarGraficoBarrasAdaptado() {
+      if (!core) return;
+
+      nuevaPagina();
+      agregarEncabezado();
+
+      let y = 35;
+      dibujarTitulo('Gráfico de Barras DISC — Bajo Presión', y);
+
+      y += 12;
+      dibujarCuadro(15, y, 180, 25, COLORES.primario, 0.05);
+
+      y += 8;
+      const introAdaptado = 'Es el mismo cálculo que el gráfico anterior, aplicado a la Parte II del test (las preguntas respondidas pensando en un contexto de exigencia o presión). No reemplaza a tu perfil Natural: lo complementa, mostrando si tu comportamiento se sostiene o se adapta cuando cambian las circunstancias.';
+      y = dibujarTexto(introAdaptado, 20, y, 170, 9);
+
+      y += 15;
+      dibujarGraficoBarrasManual(15, y, core.adaptado.valores);
+    }
+
     function dibujarGraficoBarrasManual(x, y, discValues) {
       const barWidth = 35;
       const maxHeight = 90;
@@ -2764,6 +2792,7 @@ async function generarRueda() {
     generarConsideraciones();
     generarResumen();
     await generarGraficoBarras();
+    await generarGraficoBarrasAdaptado();
     await generarRueda();
     generarAnalisisCompleto();
     generarConsistencia();

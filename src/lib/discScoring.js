@@ -161,8 +161,7 @@ export function promedioVectorEquipo(personas) {
   return { D: Math.round(suma.D / n), I: Math.round(suma.I / n), S: Math.round(suma.S / n), C: Math.round(suma.C / n) };
 }
 
-/** Nomenclatura única del producto (misma que el Informe/PDF). */
-export const DISC_NOMBRES = { D: 'Dominancia', I: 'Influencia', S: 'Estabilidad', C: 'Cumplimiento' };
+export const DISC_NOMBRES = { D: 'Dominante', I: 'Influyente', S: 'Sensato', C: 'Correcto' };
 
 /**
  * Afinidad entre dos personas con cálculo real: no compara "una letra", sino

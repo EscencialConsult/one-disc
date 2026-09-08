@@ -79,11 +79,9 @@ Verificación: con 3 tests nuevos de prueba, comprobar que la letra del panel co
 
 ---
 
-## Fase 5 — Una sola nomenclatura
+## Fase 5 — Nomenclatura
 
-Decisión del equipo (no técnica): un único nombre por letra para todo el producto. Propuesta: mantener D/I/S/C como código y elegir uno de los dos juegos que ya existen (Dominancia/Influencia/Estabilidad/Cumplimiento o Dominante/Influyente/Sensato/Correcto). Los 8 roles de la rueda y los nombres del Pack Líder pueden quedar como "estilos", pero siempre acompañados de la letra.
-
-Implementación: un solo archivo de nombres (`src/lib/config.js` + espejo en `discCore.js`) y reemplazo en Landing, Rrhh, informe, PDF y Manual.
+Decisión de Facundo (7/9/2026): **se mantienen los nombres actuales** de la Landing y el Panel RRHH (Dominante / Influyente / Sensato / Correcto). No se unifica con el informe. Fase cerrada sin cambios.
 
 ---
 

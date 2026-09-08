@@ -64,10 +64,10 @@ const MANUAL_SCRIPTS = [
  */
 
 const DISC_INFO = {
-  D: { nombre: 'Dominancia', bg: 'bg-disc-d', text: 'text-disc-d', border: 'border-disc-d/30' },
-  I: { nombre: 'Influencia', bg: 'bg-disc-i', text: 'text-disc-i', border: 'border-disc-i/30' },
-  S: { nombre: 'Estabilidad', bg: 'bg-disc-s', text: 'text-disc-s', border: 'border-disc-s/30' },
-  C: { nombre: 'Cumplimiento', bg: 'bg-disc-c', text: 'text-disc-c', border: 'border-disc-c/30' },
+  D: { nombre: 'Dominante', bg: 'bg-disc-d', text: 'text-disc-d', border: 'border-disc-d/30' },
+  I: { nombre: 'Influyente', bg: 'bg-disc-i', text: 'text-disc-i', border: 'border-disc-i/30' },
+  S: { nombre: 'Sensato', bg: 'bg-disc-s', text: 'text-disc-s', border: 'border-disc-s/30' },
+  C: { nombre: 'Correcto', bg: 'bg-disc-c', text: 'text-disc-c', border: 'border-disc-c/30' },
 };
 
 function LetraBadge({ letra }) {

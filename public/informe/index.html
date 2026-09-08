@@ -802,7 +802,7 @@
             class="score-card score-mas-di bg-gradient-to-br from-red-50/10 to-red-100/10 border border-red-500/30 rounded-2xl p-7 text-center relative overflow-hidden transition-all hover:-translate-y-1 hover:shadow-2xl">
             <div class="absolute inset-0 opacity-5 bg-gradient-radial from-red-500 to-transparent"></div>
             <div class="score-label text-xs font-bold tracking-wider uppercase text-red-400 opacity-85">MÁS → D/I</div>
-            <div class="score-sublabel text-[11px] opacity-60 mb-2 text-red-300">Ritmo activo</div>
+            <div class="score-sublabel text-[11px] opacity-60 mb-2 text-red-300">Frecuencia (28 preg.)</div>
             <div id="val-masDI"
               class="score-value font-exo text-6xl font-black leading-none tracking-tighter mb-3 text-red-400">0</div>
             <div class="score-bar-container h-1.5 bg-black/20 rounded-full mx-auto mb-2 w-4/5 overflow-hidden">
@@ -819,7 +819,7 @@
             <div class="absolute inset-0 opacity-5 bg-gradient-radial from-green-500 to-transparent"></div>
             <div class="score-label text-xs font-bold tracking-wider uppercase text-green-400 opacity-85">MÁS → S/C
             </div>
-            <div class="score-sublabel text-[11px] opacity-60 mb-2 text-green-300">Ritmo pausado</div>
+            <div class="score-sublabel text-[11px] opacity-60 mb-2 text-green-300">Frecuencia (28 preg.)</div>
             <div id="val-masSC"
               class="score-value font-exo text-6xl font-black leading-none tracking-tighter mb-3 text-green-400">0</div>
             <div class="score-bar-container h-1.5 bg-black/20 rounded-full mx-auto mb-2 w-4/5 overflow-hidden">
@@ -836,7 +836,7 @@
             <div class="absolute inset-0 opacity-5 bg-gradient-radial from-orange-500 to-transparent"></div>
             <div class="score-label text-xs font-bold tracking-wider uppercase text-orange-400 opacity-85">MENOS → D/I
             </div>
-            <div class="score-sublabel text-[11px] opacity-60 mb-2 text-orange-300">Ritmo activo</div>
+            <div class="score-sublabel text-[11px] opacity-60 mb-2 text-orange-300">Frecuencia (28 preg.)</div>
             <div id="val-menosDI"
               class="score-value font-exo text-6xl font-black leading-none tracking-tighter mb-3 text-orange-400">0
             </div>
@@ -854,7 +854,7 @@
             <div class="absolute inset-0 opacity-5 bg-gradient-radial from-blue-500 to-transparent"></div>
             <div class="score-label text-xs font-bold tracking-wider uppercase text-blue-400 opacity-85">MENOS → S/C
             </div>
-            <div class="score-sublabel text-[11px] opacity-60 mb-2 text-blue-300">Ritmo pausado</div>
+            <div class="score-sublabel text-[11px] opacity-60 mb-2 text-blue-300">Frecuencia (28 preg.)</div>
             <div id="val-menosSC"
               class="score-value font-exo text-6xl font-black leading-none tracking-tighter mb-3 text-blue-400">0</div>
             <div class="score-bar-container h-1.5 bg-black/20 rounded-full mx-auto mb-2 w-4/5 overflow-hidden">
@@ -879,6 +879,13 @@
           <span class="inline-block px-2 py-0.5 rounded-lg bg-blue-500/20 text-blue-300 text-xs font-bold mx-1">MENOS
             S/C</span> = Reservada. Cada par suma 28.
         </div>
+
+        <p class="text-[11px] text-gray-500 leading-relaxed mt-3">
+          Estas cuatro frecuencias suman las 28 preguntas completas (Parte I + Parte II juntas). Son un dato distinto
+          del eje Ritmo que se muestra más adelante en tu Perfil Conductual Dominante, que se calcula solo sobre la
+          Parte I (tu perfil Natural) — por eso los porcentajes no coinciden entre sí, y no deberían leerse como el
+          mismo número.
+        </p>
 
       </div>
     </section>
@@ -932,9 +939,9 @@
           </table>
         </div>
 
-        <!-- Análisis de Consistencia -->
-        <h2 class="section-title reveal font-exo text-3xl font-bold mb-7 pb-3 border-b border-white/10">Consistencia del
-          Perfil</h2>
+        <!-- Coherencia MÁS vs. MENOS (no confundir con Estabilidad Natural/Adaptado, más abajo) -->
+        <h2 class="section-title reveal font-exo text-3xl font-bold mb-7 pb-3 border-b border-white/10">Coherencia de tus
+          Elecciones</h2>
         <div class="consistency-card reveal rounded-2xl p-8 mb-6 border-l-4" id="consistenciaCard">
           <h3 id="consistenciaTitulo" class="font-exo text-xl font-bold mb-3"></h3>
           <p id="consistenciaTexto" class="text-sm leading-relaxed text-gray-300"></p>

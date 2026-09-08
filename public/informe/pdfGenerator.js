@@ -284,7 +284,7 @@ async function generarPDFInforme(data, resultado, respuestasParsed, returnBase64
         { titulo: 'Rueda Success Insights', pag: 16 },
         { titulo: 'Análisis Interpretativo', pag: 17 },
         { titulo: 'Perfil Conductual Dominante', pag: 18 },
-        { titulo: 'Consistencia del Perfil', pag: 19 },
+        { titulo: 'Coherencia de tus Elecciones', pag: 19 },
         { titulo: 'Comparativa Parte I vs Parte II', pag: 20 },
         { titulo: 'Implicaciones Prácticas', pag: 21 },
         { titulo: 'Detalle Pregunta por Pregunta', pag: 22 }
@@ -1616,8 +1616,8 @@ async function generarPDFInforme(data, resultado, respuestasParsed, returnBase64
       // Tarjetas de puntajes
       y += 10;
       const scores = [
-        { label: 'MÁS D/I', sublabel: 'Ritmo activo', val: resultado.masDI, pct: resultado.pctMasDI, color: COLORES.D, nivel: resultado.nivelMasDI },
-        { label: 'MÁS S/C', sublabel: 'Ritmo pausado', val: resultado.masSC, pct: resultado.pctMasSC, color: COLORES.S, nivel: resultado.nivelMasSC }
+        { label: 'MÁS D/I', sublabel: 'Frecuencia (28 preg.)', val: resultado.masDI, pct: resultado.pctMasDI, color: COLORES.D, nivel: resultado.nivelMasDI },
+        { label: 'MÁS S/C', sublabel: 'Frecuencia (28 preg.)', val: resultado.masSC, pct: resultado.pctMasSC, color: COLORES.S, nivel: resultado.nivelMasSC }
       ];
 
       scores.forEach((score, i) => {
@@ -1660,8 +1660,8 @@ async function generarPDFInforme(data, resultado, respuestasParsed, returnBase64
 
       y += 50;
       const scores2 = [
-        { label: 'MENOS D/I', sublabel: 'Ritmo activo', val: resultado.menosDI, pct: resultado.pctMenosDI, color: COLORES.I, nivel: resultado.nivelMenosDI },
-        { label: 'MENOS S/C', sublabel: 'Ritmo pausado', val: resultado.menosSC, pct: resultado.pctMenosSC, color: COLORES.C, nivel: resultado.nivelMenosSC }
+        { label: 'MENOS D/I', sublabel: 'Frecuencia (28 preg.)', val: resultado.menosDI, pct: resultado.pctMenosDI, color: COLORES.I, nivel: resultado.nivelMenosDI },
+        { label: 'MENOS S/C', sublabel: 'Frecuencia (28 preg.)', val: resultado.menosSC, pct: resultado.pctMenosSC, color: COLORES.C, nivel: resultado.nivelMenosSC }
       ];
 
       scores2.forEach((score, i) => {
@@ -1716,6 +1716,12 @@ async function generarPDFInforme(data, resultado, respuestasParsed, returnBase64
       doc.setFontSize(9);
       const lectura = 'En el test se presentaron 28 grupos de 4 características. Para cada grupo seleccionaste la característica que MÁS te describe y la que MENOS te describe. Los valores "MÁS" indican identificación con ese tipo de comportamiento, mientras que "MENOS" indica rechazo. Cada par (MÁS/MENOS) suma 28, el total de preguntas.';
       y = dibujarTexto(lectura, 20, y, 170, 9, COLORES.textoClaro);
+
+      if (core) {
+        y += 3;
+        const aclaracion = 'Estas cuatro frecuencias suman las 28 preguntas completas (Parte I + Parte II juntas). Son un dato distinto del eje Ritmo que se muestra más adelante en "Tu Perfil Conductual Dominante", que se calcula solo sobre la Parte I (tu perfil Natural) — por eso los porcentajes no coinciden entre sí, y no deberían leerse como el mismo número.';
+        y = dibujarTexto(aclaracion, 20, y, 170, 9, COLORES.textoClaro);
+      }
     }
 
     // ========== GRÁFICO DE BARRAS DISC ==========
@@ -2028,7 +2034,7 @@ async function generarRueda() {
         const COL_LETRA = { D: COLORES.D, I: COLORES.I, S: COLORES.S, C: COLORES.C };
         perfil = `Perfil ${tp.letra.letra} - ${tp.letra.nombre}`;
         color = COL_LETRA[tp.letra.letra];
-        descripcionPerfil = `${tp.letra.ubicacion}. ${tp.letra.resumen} Ritmo: ${tp.valores.activo}% activo / ${tp.valores.pausado}% pausado. Foco: ${tp.valores.tareas}% tareas / ${tp.valores.personas}% personas. Son dos ejes independientes: la velocidad con la que actúas no determina si miras primero la tarea o a las personas.`;
+        descripcionPerfil = `${tp.letra.ubicacion}. ${tp.letra.resumen} Ritmo: ${tp.valores.activo}% activo / ${tp.valores.pausado}% pausado. Foco: ${tp.valores.tareas}% tareas / ${tp.valores.personas}% personas. Son dos ejes independientes: la velocidad con la que actúas no determina si miras primero la tarea o a las personas. Este porcentaje sale de tus elecciones MÁS y MENOS en ese eje (D+I para ritmo, D+C para foco) — no de sumar o promediar las cuatro barras de la página anterior, que miden cada letra por separado.`;
         caracteristicasClave = [
           `${tp.ritmo.titulo}: ${tp.ritmo.resumen}`,
         ].concat(tp.ritmo.bullets.slice(0, 2), [
@@ -2267,61 +2273,69 @@ async function generarRueda() {
       agregarEncabezado();
 
       let y = 35;
-      dibujarSubtitulo('Consistencia del Perfil', y);
+      // Antes decía "Consistencia del Perfil", que competía en el nombre con
+      // "Estabilidad del Perfil: Parte I vs Parte II" (página siguiente) sin
+      // medir lo mismo: acá se compara MÁS contra MENOS en las 28 preguntas
+      // juntas (coherencia interna de tus elecciones); la Estabilidad
+      // compara Natural contra Adaptado. Nombres distintos para cosas
+      // distintas — ver PROPUESTA_CONSISTENCIA_DISC.md, Causa B.
+      dibujarSubtitulo('Coherencia de tus Elecciones (MÁS vs. MENOS)', y);
 
       y += 8;
       const consistencia = resultado.tipoConsistencia;
       let tituloConsistencia, textoConsistencia, colorConsistencia, implicaciones;
 
+      // Los títulos y textos ya NO usan "Ritmo" ni "Orientación": esos nombres
+      // son del eje Ritmo/Foco real (Tu Perfil Conductual Dominante, página
+      // anterior), calculado solo sobre la Parte I. Esto mide otra cosa —
+      // si tus elecciones MÁS y MENOS son complementarias entre sí, en las
+      // 28 preguntas combinadas— y usar el mismo vocabulario sugería que
+      // era el mismo dato, cuando pueden dar números distintos.
       if (consistencia === 'consistente_DI') {
-        tituloConsistencia = 'Perfil Altamente Consistente: Ritmo Activo (D-I)';
-        textoConsistencia = 'Existe alta consistencia en tu perfil conductual. Las características que identificas como MÁS representativas (ritmo activo, D-I) son complementarias con las que rechazas como MENOS representativas (ritmo pausado, S-C). Esto indica un autoconocimiento claro y una preferencia de ritmo bien definida hacia la acción y la velocidad de respuesta.';
+        tituloConsistencia = 'Alta Coherencia: predominan las elecciones D/I';
+        textoConsistencia = 'Tus elecciones son internamente coherentes: lo que identificás como MÁS representativo (características D/I) es consistente con lo que rechazás como MENOS representativo (características S/C), en las 28 preguntas del test combinadas. Esto es un dato de coherencia interna, distinto del eje Ritmo — para ver tu perfil de ritmo y foco, ver la sección anterior.';
         colorConsistencia = COLORES.S;
 
         implicaciones = [
-          'Tu comportamiento es predecible y coherente en diferentes situaciones',
-          'Las personas pueden anticipar tus reacciones y estilo de trabajo',
-          'Tienes claridad sobre tus fortalezas y preferencias naturales',
-          'Es importante asegurar que tu entorno laboral aproveche estas fortalezas',
-          'Considera desarrollar flexibilidad para contextos que requieren estilo S-C'
+          'Tus respuestas al test son coherentes entre sí, sin contradicciones internas',
+          'Tenés claridad sobre qué características D/I te representan y cuáles no',
+          'Este dato respalda la confiabilidad del resto del informe',
+          'No reemplaza al eje Ritmo — para eso, ver Tu Perfil Conductual Dominante'
         ];
 
       } else if (consistencia === 'consistente_SC') {
-        tituloConsistencia = 'Perfil Altamente Consistente: Orientación Reservada (S-C)';
-        textoConsistencia = 'Existe alta consistencia en tu perfil. Las características que identificas como MÁS representativas (ritmo pausado, S-C) son complementarias con las que rechazas como MENOS (ritmo activo, D-I). Esto indica autoconocimiento claro y una preferencia de ritmo bien definida hacia la reflexión y los tiempos largos.';
+        tituloConsistencia = 'Alta Coherencia: predominan las elecciones S/C';
+        textoConsistencia = 'Tus elecciones son internamente coherentes: lo que identificás como MÁS representativo (características S/C) es consistente con lo que rechazás como MENOS representativo (características D/I), en las 28 preguntas del test combinadas. Esto es un dato de coherencia interna, distinto del eje Ritmo — para ver tu perfil de ritmo y foco, ver la sección anterior.';
         colorConsistencia = COLORES.S;
 
         implicaciones = [
-          'Tu comportamiento es estable y confiable en el tiempo',
-          'Las personas valoran tu consistencia y capacidad analítica',
-          'Tienes claridad sobre tu preferencia por calidad y estabilidad',
-          'Busca entornos que valoren la precisión y el trabajo metódico',
-          'Considera desarrollar tolerancia para situaciones de cambio rápido'
+          'Tus respuestas al test son coherentes entre sí, sin contradicciones internas',
+          'Tenés claridad sobre qué características S/C te representan y cuáles no',
+          'Este dato respalda la confiabilidad del resto del informe',
+          'No reemplaza al eje Ritmo — para eso, ver Tu Perfil Conductual Dominante'
         ];
 
       } else if (consistencia === 'mixto') {
-        tituloConsistencia = 'Perfil Mixto: Alta Adaptabilidad Conductual';
-        textoConsistencia = 'Tu perfil muestra un patrón mixto sin orientación predominante marcada. Seleccionas tanto características activas (D-I) como reservadas (S-C) como representativas. Esto puede indicar versatilidad genuina, adaptabilidad conductual o un momento de transición personal/profesional.';
+        tituloConsistencia = 'Coherencia Mixta: sin predominio claro';
+        textoConsistencia = 'Tus elecciones MÁS combinan características D/I y S/C en proporciones similares, en las 28 preguntas del test. Esto no es contradictorio ni un problema: puede reflejar versatilidad genuina o que tu comportamiento varía bastante según el contexto. No sustituye al eje Ritmo (sección anterior), que sí distingue con qué frecuencia elegís cada eje en calma versus bajo presión.';
         colorConsistencia = COLORES.primario;
 
         implicaciones = [
-          'Posees flexibilidad para adaptarte a diversos contextos y roles',
-          'Puedes trabajar efectivamente tanto con ritmo acelerado como pausado',
-          'Tu versatilidad es un activo valioso en entornos cambiantes',
-          'Importante identificar en qué contextos rindes al máximo',
-          'Evita dispersarte: define tu zona de excelencia preferida'
+          'Tus elecciones no muestran una preferencia marcada de un solo lado',
+          'Puede reflejar versatilidad genuina entre distintos contextos',
+          'Para ver tu perfil real de ritmo y foco, consultá Tu Perfil Conductual Dominante',
+          'Considerá si tus respuestas variaron según el momento en que respondiste cada parte'
         ];
 
       } else {
-        tituloConsistencia = 'Perfil a Analizar: Patrón de Inconsistencia';
-        textoConsistencia = 'Tu perfil muestra un patrón que requiere análisis adicional. Puede ocurrir cuando hay disonancia entre lo que deseas ser y lo que crees ser, cuando factores situacionales distorsionan la autopercepción, o durante períodos de cambio significativo.';
+        tituloConsistencia = 'Patrón a Revisar: elecciones internamente contradictorias';
+        textoConsistencia = 'Tus elecciones MÁS y MENOS no son consistentes entre sí (elegís como MÁS y como MENOS representativas características del mismo lado del eje). Puede ocurrir por factores situacionales al responder, o simplemente porque tu comportamiento es genuinamente variable. No es un error del test ni invalida el resto del informe.';
         colorConsistencia = COLORES.I;
 
         implicaciones = [
           'Se recomienda una entrevista complementaria con un consultor DISC',
-          'Reflexiona sobre posibles factores que influyen en tus respuestas',
+          'Reflexiona sobre posibles factores que influyeron en tus respuestas',
           'Considera si estás en un período de transición personal/profesional',
-          'Evalúa si hay presión externa para comportarte de cierta manera',
           'Útil re-evaluar en 3-6 meses para identificar patrones más estables'
         ];
       }

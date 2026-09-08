@@ -116,22 +116,28 @@ const TEXTOS_NIVEL = {
   }
 };
 
+// Los títulos y textos NO usan "Ritmo" ni "Orientación": esos nombres son
+// del eje Ritmo/Foco real (Tu Perfil Conductual Dominante), calculado solo
+// sobre la Parte I. Esto mide otra cosa — si las elecciones MÁS y MENOS son
+// complementarias entre sí, en las 28 preguntas combinadas — y usar el mismo
+// vocabulario sugería que era el mismo dato, cuando pueden dar números
+// distintos. Ver PROPUESTA_CONSISTENCIA_DISC.md, Causa B.
 const TEXTOS_CONSISTENCIA = {
   consistente_DI: {
-    titulo: "✅ Perfil Consistente: Orientación Activa/Extrovertida (D-I)",
-    texto: "Existe alta consistencia en el perfil: las características MÁS representativas (D/I) son complementarias con las MENOS representativas (S/C). Esto indica autoconocimiento claro y un patrón conductual definido hacia la acción, el liderazgo y la comunicación."
+    titulo: "✅ Alta Coherencia: predominan las elecciones D/I",
+    texto: "Tus elecciones son internamente coherentes: lo que identificás como MÁS representativo (características D/I) es consistente con lo que rechazás como MENOS representativo (características S/C), en las 28 preguntas del test combinadas. Esto es un dato de coherencia interna, distinto del eje Ritmo — para ver tu perfil de ritmo y foco, ver Tu Perfil Conductual Dominante."
   },
   consistente_SC: {
-    titulo: "✅ Perfil Consistente: Orientación Reservada/Metódica (S-C)",
-    texto: "Existe alta consistencia: las características MÁS representativas (S/C) son complementarias con las MENOS representativas (D/I). Esto indica autoconocimiento claro hacia la estabilidad, la cooperación, el análisis y la precisión."
+    titulo: "✅ Alta Coherencia: predominan las elecciones S/C",
+    texto: "Tus elecciones son internamente coherentes: lo que identificás como MÁS representativo (características S/C) es consistente con lo que rechazás como MENOS representativo (características D/I), en las 28 preguntas del test combinadas. Esto es un dato de coherencia interna, distinto del eje Ritmo — para ver tu perfil de ritmo y foco, ver Tu Perfil Conductual Dominante."
   },
   mixto: {
-    titulo: "⚖️ Perfil Mixto: Orientación Adaptable",
-    texto: "El perfil muestra un patrón mixto sin orientación predominante marcada. Se seleccionan tanto características activas (D/I) como reservadas (S/C). Esto puede indicar versatilidad y adaptabilidad conductual, o un momento de transición personal/profesional."
+    titulo: "⚖️ Coherencia Mixta: sin predominio claro",
+    texto: "Tus elecciones MÁS combinan características D/I y S/C en proporciones similares, en las 28 preguntas del test. Esto no es contradictorio ni un problema: puede reflejar versatilidad genuina o que tu comportamiento varía bastante según el contexto. No sustituye al eje Ritmo (Tu Perfil Conductual Dominante), que sí distingue con qué frecuencia elegís cada eje en calma versus bajo presión."
   },
   contradictorio: {
-    titulo: "⚠️ Perfil a Analizar: Posible Inconsistencia",
-    texto: "El perfil muestra un patrón que requiere análisis adicional. Puede ocurrir cuando hay disonancia entre lo que se desea ser y lo que se cree ser, o cuando factores situacionales distorsionan la autopercepción. Se recomienda una entrevista complementaria."
+    titulo: "⚠️ Patrón a Revisar: elecciones internamente contradictorias",
+    texto: "Tus elecciones MÁS y MENOS no son consistentes entre sí (elegís como MÁS y como MENOS representativas características del mismo lado del eje). Puede ocurrir por factores situacionales al responder, o simplemente porque tu comportamiento es genuinamente variable. No es un error del test ni invalida el resto del informe. Se recomienda una entrevista complementaria."
   }
 };
 
@@ -656,6 +662,11 @@ function renderPerfilDominanteEjes(card, core) {
       <p class="text-[11px] text-gray-500 leading-relaxed">
         Son dos ejes independientes: qué tan rápido actúas no dice nada sobre si miras primero
         la tarea o a las personas. Las cuatro combinaciones son igualmente válidas.
+      </p>
+      <p class="text-[11px] text-gray-500 leading-relaxed mt-1.5">
+        Este porcentaje sale de tus elecciones MÁS y MENOS en ese eje (D+I para ritmo, D+C para
+        foco) — no de sumar o promediar las cuatro barras del Gráfico de Barras, que miden cada
+        letra por separado.
       </p>
     </div>
 

@@ -90,8 +90,10 @@ export function calcularPerfilCompleto(detalle) {
   return {
     vectorNatural: c.natural.valores,
     vectorAdaptado: c.adaptado.valores,
-    ritmoNatural: c.natural.ritmo,   // { activo, pausado } — eje real, no derivado de vectorNatural
-    focoNatural: c.natural.foco,     // { tareas, personas }
+    ritmoNatural: c.natural.ritmo,     // { activo, pausado } — eje real, no derivado de vectorNatural
+    focoNatural: c.natural.foco,       // { tareas, personas }
+    ritmoAdaptado: c.adaptado.ritmo,   // mismos ejes, calculados sobre Parte II (bajo presión)
+    focoAdaptado: c.adaptado.foco,
     estabilidad: c.estabilidad,
     rolNatural: c.natural.polares.rol,
     rolAdaptado: c.adaptado.polares.rol,
@@ -228,6 +230,68 @@ export function lecturaEjesReales(a, b) {
     ritmo: { diff: diffRitmo, nivel: nivelDiferencia(diffRitmo) },
     foco: { diff: diffFoco, nivel: nivelDiferencia(diffFoco) },
   };
+}
+
+// Cambio mínimo (en puntos del eje 0-100) para considerar que alguien se
+// mueve bajo presión, en vez de ruido — mismo orden que "casi nula" de
+// lecturaEjesReales. No calibrado por simulación todavía (igual que los
+// cortes de gap de discCore.js): es un valor inicial, no definitivo.
+const UMBRAL_CAMBIO_PRESION = 10;
+
+/**
+ * Dirección del cambio de UNA persona bajo presión (Natural -> Adaptado), en
+ * ritmo y en foco. Es la dirección, no la magnitud: la magnitud ya la mide
+ * `estabilidad` (discCore.js). AUDITORIA_DISC_COMPATIBILIDAD_CULTURAL.md §18:
+ * "aumento de D", "caída de I", etc. son casos particulares de "se acelera" /
+ * "se pausa" / "se mueve hacia tareas o hacia personas" en estos dos ejes.
+ */
+export function direccionPresion(ritmoNatural, ritmoAdaptado, focoNatural, focoAdaptado) {
+  if (!ritmoNatural || !ritmoAdaptado || !focoNatural || !focoAdaptado) return null;
+  const deltaRitmo = ritmoAdaptado.activo - ritmoNatural.activo;
+  const deltaFoco = focoAdaptado.tareas - focoNatural.tareas;
+  return {
+    deltaRitmo,
+    deltaFoco,
+    ritmo: Math.abs(deltaRitmo) < UMBRAL_CAMBIO_PRESION ? 'estable' : deltaRitmo > 0 ? 'acelera' : 'se pausa',
+    foco: Math.abs(deltaFoco) < UMBRAL_CAMBIO_PRESION ? 'estable' : deltaFoco > 0 ? 'hacia tareas' : 'hacia personas',
+  };
+}
+
+/**
+ * Compatibilidad bajo presión entre DOS personas: compara hacia dónde se
+ * mueve cada una bajo presión, no cuánto (eso ya lo cubren `estabilidad` y
+ * `adaptacionA/B` de afinidadPersonas). El riesgo real no es adaptarse
+ * mucho — es adaptarse en DIRECCIONES OPUESTAS, porque ahí una diferencia
+ * manejable en calma se amplifica justo cuando más importa sostenerla.
+ *
+ * Documento original §18: "no clasificar automáticamente como
+ * incompatibilidad, pero sí marcar riesgo" — por eso esto devuelve una
+ * lectura descriptiva, nunca un veredicto ni un número que se sume a otro.
+ */
+export function lecturaPresion(a, b) {
+  const dirA = direccionPresion(a?.ritmoNatural, a?.ritmoAdaptado, a?.focoNatural, a?.focoAdaptado);
+  const dirB = direccionPresion(b?.ritmoNatural, b?.ritmoAdaptado, b?.focoNatural, b?.focoAdaptado);
+  if (!dirA || !dirB) return null;
+
+  const opuestos = (x, y) =>
+    (x === 'acelera' && y === 'se pausa') || (x === 'se pausa' && y === 'acelera') ||
+    (x === 'hacia tareas' && y === 'hacia personas') || (x === 'hacia personas' && y === 'hacia tareas');
+
+  const riesgoRitmo = opuestos(dirA.ritmo, dirB.ritmo);
+  const riesgoFoco = opuestos(dirA.foco, dirB.foco);
+
+  let texto;
+  if (riesgoRitmo && riesgoFoco) {
+    texto = 'Bajo presión se mueven en direcciones opuestas en ritmo y en foco: una diferencia manejable en calma puede ampliarse justo cuando más importa sostenerla.';
+  } else if (riesgoRitmo) {
+    texto = 'Bajo presión divergen en ritmo — uno acelera, el otro se pausa: la diferencia de tiempos puede acentuarse en los momentos críticos.';
+  } else if (riesgoFoco) {
+    texto = 'Bajo presión divergen en foco — uno prioriza tareas, el otro personas: pueden desacordar sobre qué atender primero justo cuando hay más urgencia.';
+  } else {
+    texto = 'Bajo presión no se detecta un riesgo adicional de divergencia entre ritmo y foco.';
+  }
+
+  return { dirA, dirB, riesgoRitmo, riesgoFoco, texto };
 }
 
 /** Texto de brecha por eje entre la Cultura Actual (promedio del equipo) y la Cultura Ideal (definida por el Admin). */

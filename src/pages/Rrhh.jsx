@@ -41,6 +41,7 @@ import {
   calcularPerfilCompleto,
   afinidadPersonas,
   lecturaEjesReales,
+  lecturaPresion,
 } from '../lib/discScoring.js';
 import Footer from '../components/Footer.jsx';
 import { LoadingOverlay, useToasts } from './AdminDashboard.jsx';
@@ -131,6 +132,7 @@ function DireccionRelacion({ persona, contraparte }) {
 function AfinidadReal({ a, b }) {
   const af = afinidadPersonas(a, b);
   const ejes = lecturaEjesReales(a, b);
+  const presion = lecturaPresion(a, b);
   if (!af) {
     return (
       <div className="mb-6 rounded-2xl border border-one-gold/30 bg-one-gold/5 p-5 text-sm text-gray-300">
@@ -200,6 +202,31 @@ function AfinidadReal({ a, b }) {
               <p className="mt-1 text-xs text-gray-500">Acuerdo o tensión en qué atender primero: tareas/resultados vs. personas/vínculos.</p>
             </div>
           </div>
+        </div>
+      )}
+
+      {presion && (
+        <div className="mb-6 overflow-hidden rounded-2xl border border-white/10 bg-white/5">
+          <div className="border-b border-white/10 px-6 py-3">
+            <h4 className="font-title text-sm font-bold text-gray-200">Bajo presión</h4>
+            <p className="mt-0.5 text-[11px] text-gray-500">
+              Hacia dónde se mueve cada uno, no cuánto — la magnitud ya la muestra "Cambio bajo presión" arriba.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-2">
+            {[{ p: a, dir: presion.dirA }, { p: b, dir: presion.dirB }].map(({ p, dir }) => (
+              <div key={p.usuario}>
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">{p.nombre.split(' ')[0]}</p>
+                <p className="mt-1 text-sm text-gray-200">
+                  Ritmo: <strong className={dir.ritmo === 'estable' ? 'text-gray-300' : 'text-yellow-400'}>{dir.ritmo}</strong>
+                  {' '}· Foco: <strong className={dir.foco === 'estable' ? 'text-gray-300' : 'text-yellow-400'}>{dir.foco}</strong>
+                </p>
+              </div>
+            ))}
+          </div>
+          <p className={`border-t border-white/10 px-6 py-3 text-sm ${presion.riesgoRitmo || presion.riesgoFoco ? 'text-orange-300' : 'text-gray-400'}`}>
+            {presion.texto}
+          </p>
         </div>
       )}
     </>
@@ -953,6 +980,8 @@ export default function Rrhh() {
               vectorAdaptado: completo ? completo.vectorAdaptado : null,
               ritmoNatural: completo ? completo.ritmoNatural : null,
               focoNatural: completo ? completo.focoNatural : null,
+              ritmoAdaptado: completo ? completo.ritmoAdaptado : null,
+              focoAdaptado: completo ? completo.focoAdaptado : null,
               estabilidad: completo ? completo.estabilidad : null,
               pdfPath: r.pdf_path || '',
               packStatus: packStatusPorUsuario[r.User] || '',

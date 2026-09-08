@@ -95,6 +95,38 @@
     })[0];
   }
 
+  /** Segunda letra por valor, excluyendo la principal (mismo criterio de empate que `dominante`). */
+  function letraSecundaria(valores, principal, conteo) {
+    return LETRAS.filter((L) => L !== principal).sort((a, b) => {
+      if (valores[b] !== valores[a]) return valores[b] - valores[a];
+      if (conteo && conteo.mas[b] !== conteo.mas[a]) return conteo.mas[b] - conteo.mas[a];
+      return LETRAS.indexOf(a) - LETRAS.indexOf(b);
+    })[0];
+  }
+
+  // Cortes iniciales de PROPUESTA_CONSISTENCIA_DISC.md §4, en preguntas (unidad del neto,
+  // no de la escala 0-100). PENDIENTES DE CALIBRAR por simulación (§11 fase 7) antes de
+  // usarse para decidir textos o para excluir a alguien de la distribución por letra en
+  // RRHH — hoy son solo un dato adicional, aditivo, que nadie más lee todavía.
+  const GAP_DEFINIDO = 5, GAP_MODERADO = 3, GAP_LEVE = 1;
+
+  /** Nivel de definición del perfil según la distancia (en preguntas) entre principal y secundaria. */
+  function nivelDefinicion(gap) {
+    if (gap >= GAP_DEFINIDO) return 'definido';
+    if (gap >= GAP_MODERADO) return 'moderado';
+    if (gap >= GAP_LEVE) return 'leve';
+    return 'mixto';
+  }
+
+  /** Etiqueta legible del perfil, coherente con el nivel de definición (no siempre una sola letra). */
+  function etiquetaPerfil(principal, secundaria, nivel) {
+    if (nivel === 'definido') return `Perfil ${principal}`;
+    if (nivel === 'mixto') return 'Perfil mixto, sin letra dominante clara';
+    const orden = LETRAS.indexOf(principal) <= LETRAS.indexOf(secundaria) ? `${principal}/${secundaria}` : `${secundaria}/${principal}`;
+    if (nivel === 'moderado') return `Perfil ${orden} con predominio ${principal}`;
+    return `Perfil combinado ${orden}`;
+  }
+
   function nivelIntensidad(v100) {
     if (v100 >= UMBRAL_PREDOMINANTE) return 'Predominante';
     if (v100 >= UMBRAL_BAJO) return 'Moderada';
@@ -164,6 +196,18 @@
     adaptado.dominante = dominante(adaptado.valores, cA);
     natural.niveles = {}; LETRAS.forEach((L) => { natural.niveles[L] = nivelIntensidad(natural.valores[L]); });
     adaptado.niveles = {}; LETRAS.forEach((L) => { adaptado.niveles[L] = nivelIntensidad(adaptado.valores[L]); });
+    // Campos aditivos de PROPUESTA_CONSISTENCIA_DISC.md §4 (nivel de definición). Nadie los
+    // consume todavía — `dominante` sigue siendo el campo que leen los consumidores actuales.
+    natural.principal = natural.dominante;
+    natural.secundaria = letraSecundaria(natural.valores, natural.principal, cN);
+    natural.gap = nN[natural.principal] - nN[natural.secundaria];
+    natural.nivel_definicion = nivelDefinicion(natural.gap);
+    natural.etiqueta = etiquetaPerfil(natural.principal, natural.secundaria, natural.nivel_definicion);
+    adaptado.principal = adaptado.dominante;
+    adaptado.secundaria = letraSecundaria(adaptado.valores, adaptado.principal, cA);
+    adaptado.gap = nA[adaptado.principal] - nA[adaptado.secundaria];
+    adaptado.nivel_definicion = nivelDefinicion(adaptado.gap);
+    adaptado.etiqueta = etiquetaPerfil(adaptado.principal, adaptado.secundaria, adaptado.nivel_definicion);
     // Valores "globales" (28 preguntas). NO es un perfil: promediar calma y presión
     // describe a alguien que no existe (un D que bajo presión pasa a S no es "D-S
     // moderado"). Se conserva solo como dato de control, no se muestra en el informe.
@@ -200,7 +244,9 @@
 
   const DISCCore = {
     LETRAS, NOMBRES, ROLES, SECTOR_CENTRO, UMBRAL_PREDOMINANTE, UMBRAL_BAJO, ESTABILIDAD,
-    tieneDetalle, conteos, neto, escala100, dominante, nivelIntensidad, polares, celda, rolPorAngulo, letraPorAngulo, estabilidad, calcular, detallePreguntas,
+    GAP_DEFINIDO, GAP_MODERADO, GAP_LEVE,
+    tieneDetalle, conteos, neto, escala100, dominante, letraSecundaria, nivelDefinicion, etiquetaPerfil,
+    nivelIntensidad, polares, celda, rolPorAngulo, letraPorAngulo, estabilidad, calcular, detallePreguntas,
   };
 
   if (typeof window !== 'undefined') window.DISCCore = DISCCore;

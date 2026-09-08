@@ -1058,11 +1058,16 @@ window.renderRuedaSI5("#ruedaSVG", {
   height: 900
 });
 
+// Leyenda visible debajo de la rueda: estilo (rol), celda, ángulo e intensidad.
+const badgeHtml = (c, rol) =>
+  `${rol ? `<span class="text-white font-semibold">${rol.charAt(0) + rol.slice(1).toLowerCase()}</span> · ` : ''}` +
+  `Celda ${c.cell} · ${Math.round(c.angle) % 360}° · Intensidad ${Math.round(c.radius * 100)}%`;
+
 const nBadge = document.getElementById('naturalCellBadge');
-if (nBadge) nBadge.textContent = `Celda: ${coordenadas.natural.cell}`;
+if (nBadge) nBadge.innerHTML = badgeHtml(coordenadas.natural, rolN);
 
 const aBadge = document.getElementById('adaptadoCellBadge');
-if (aBadge) aBadge.textContent = `Celda: ${coordenadas.adaptado.cell}`;
+if (aBadge) aBadge.innerHTML = badgeHtml(coordenadas.adaptado, rolA);
 
 const nInfo = document.getElementById('naturalInfo');
 if (nInfo) {

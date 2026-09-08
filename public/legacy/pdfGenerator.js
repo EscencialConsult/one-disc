@@ -3,6 +3,14 @@
  * GENERADOR DE PDF PROFESIONAL - INFORME DISC COMPLETO
  * Versión extendida con toda la información y gráficos
  * ============================================================================
+ *
+ * ⚠️ COPIA IDÉNTICA en public/legacy/pdfGenerator.js — la carga TestDisc.jsx
+ * (descarga inmediata al terminar el test) vía TEST_SCRIPTS, en vez de este
+ * archivo. El informe web standalone (public/informe/index.html) sí carga
+ * este archivo directo. Todo cambio acá hay que copiarlo también a
+ * public/legacy/pdfGenerator.js, o la descarga inmediata queda desactualizada
+ * en silencio (pasó: el PDF de recién-terminado el test no tenía el segundo
+ * gráfico ni la letra exacta del detalle, aunque el informe web sí).
  */
 
 async function generarPDFInforme(data, resultado, respuestasParsed, returnBase64 = false) {
@@ -272,13 +280,14 @@ async function generarPDFInforme(data, resultado, respuestasParsed, returnBase64
         { titulo: 'Consideraciones Importantes', pag: 12 },
         { titulo: 'Resumen de Resultados', pag: 13 },
         { titulo: 'Gráfico de Barras DISC', pag: 14 },
-        { titulo: 'Rueda Success Insights', pag: 15 },
-        { titulo: 'Análisis Interpretativo', pag: 16 },
-        { titulo: 'Perfil Conductual Dominante', pag: 17 },
-        { titulo: 'Consistencia del Perfil', pag: 18 },
-        { titulo: 'Comparativa Parte I vs Parte II', pag: 19 },
-        { titulo: 'Implicaciones Prácticas', pag: 20 },
-        { titulo: 'Detalle Pregunta por Pregunta', pag: 21 }
+        { titulo: 'Gráfico de Barras DISC — Bajo Presión', pag: 15 },
+        { titulo: 'Rueda Success Insights', pag: 16 },
+        { titulo: 'Análisis Interpretativo', pag: 17 },
+        { titulo: 'Perfil Conductual Dominante', pag: 18 },
+        { titulo: 'Consistencia del Perfil', pag: 19 },
+        { titulo: 'Comparativa Parte I vs Parte II', pag: 20 },
+        { titulo: 'Implicaciones Prácticas', pag: 21 },
+        { titulo: 'Detalle Pregunta por Pregunta', pag: 22 }
       ];
 
       secciones.forEach((seccion, index) => {
@@ -1775,6 +1784,33 @@ async function generarPDFInforme(data, resultado, respuestasParsed, returnBase64
       });
     }
 
+    // ========== GRÁFICO DE BARRAS DISC — ADAPTADO (bajo presión) ==========
+    // §12.2 de PROPUESTA_CONSISTENCIA_DISC.md: dos gráficos, no uno
+    // superpuesto, para no dar a entender que el Natural es "el" perfil
+    // único de la persona. Solo para tests con `detalle` real — los tests
+    // legacy no tienen un vector Adaptado confiable calculado de forma
+    // independiente (ver AUDITORIA_DISC_COMRURAL.md), así que esta página
+    // directamente no se genera para ellos.
+    async function generarGraficoBarrasAdaptado() {
+      if (!core) return;
+
+      nuevaPagina();
+      agregarEncabezado();
+
+      let y = 35;
+      dibujarTitulo('Gráfico de Barras DISC — Bajo Presión', y);
+
+      y += 12;
+      dibujarCuadro(15, y, 180, 25, COLORES.primario, 0.05);
+
+      y += 8;
+      const introAdaptado = 'Es el mismo cálculo que el gráfico anterior, aplicado a la Parte II del test (las preguntas respondidas pensando en un contexto de exigencia o presión). No reemplaza a tu perfil Natural: lo complementa, mostrando si tu comportamiento se sostiene o se adapta cuando cambian las circunstancias.';
+      y = dibujarTexto(introAdaptado, 20, y, 170, 9);
+
+      y += 15;
+      dibujarGraficoBarrasManual(15, y, core.adaptado.valores);
+    }
+
     function dibujarGraficoBarrasManual(x, y, discValues) {
       const barWidth = 35;
       const maxHeight = 90;
@@ -2443,7 +2479,12 @@ async function generarRueda() {
       if (diffTotal <= corteMuyEstable) {
         titulo = 'Perfil Muy Estable';
         color = COLORES.S;
-        interpretacion = `Tu comportamiento es consistente entre situaciones normales y bajo presión. Las diferencias son mínimas (${diffTotal} puntos de diferencia total). Esto indica que eres auténtico, tu comportamiento natural coincide con tu comportamiento adaptado, no modificas significativamente tu conducta bajo estrés y las personas te perciben como predecible y congruente. Tu entorno laboral actual te permite ser tú mismo, lo cual es positivo. Asegúrate de que este entorno realmente te permita desarrollar todo tu potencial.`;
+        // La diferencia total puede ser baja y aun así estar casi toda concentrada
+        // en una sola letra (core.estabilidad.concentrada) — ahí no corresponde
+        // decir "no modificas tu conducta" sin nombrar esa excepción puntual.
+        interpretacion = (core && core.estabilidad.concentrada)
+          ? `Tu comportamiento es consistente entre situaciones normales y bajo presión: el núcleo de tu perfil se mantiene y las diferencias totales son mínimas (${diffTotal} puntos). Hay una excepción puntual que vale la pena notar: la mayor parte de ese movimiento está concentrado en ${window.DISCCore.NOMBRES[core.estabilidad.letraMax]} (${core.estabilidad.letraMax}), que se ajusta más que el resto bajo presión. El resto de tu perfil se sostiene, y las personas te perciben como predecible y congruente en general. Tu entorno laboral actual te permite ser mayormente vos mismo, lo cual es positivo.`
+          : `Tu comportamiento es consistente entre situaciones normales y bajo presión. Las diferencias son mínimas (${diffTotal} puntos de diferencia total). Esto indica que eres auténtico, tu comportamiento natural coincide con tu comportamiento adaptado, no modificas significativamente tu conducta bajo estrés y las personas te perciben como predecible y congruente. Tu entorno laboral actual te permite ser tú mismo, lo cual es positivo. Asegúrate de que este entorno realmente te permita desarrollar todo tu potencial.`;
       } else if (diffTotal <= corteNucleo) {
         titulo = 'Perfil Adaptable con Núcleo Estable';
         color = COLORES.primario;
@@ -2636,7 +2677,20 @@ async function generarRueda() {
 
       y += 8;
 
-      const detalleP1 = resultado.detallePreguntas.filter(p => p.parte === 'I');
+      // `resultado.detallePreguntas` (armado en script.js) solo trae el grupo
+      // D/I o S/C, nunca la letra exacta — el PDF terminaba mostrando "S/C"
+      // aunque la leyenda dice "la letra exacta". Con `detalle` real (tests
+      // nuevos) se recalcula con discCore.detallePreguntas(), que sí la tiene;
+      // los textos de cada pregunta (D/I/S/C) se toman igual del `resultado`
+      // ya armado, solo cambia de dónde sale la letra elegida.
+      const detalleReal = (detalle && window.DISCCore)
+        ? window.DISCCore.detallePreguntas(
+            detalle,
+            resultado.detallePreguntas.map((p) => ({ id: p.numero, D: p.textoD, I: p.textoI, S: p.textoS, C: p.textoC }))
+          )
+        : resultado.detallePreguntas;
+
+      const detalleP1 = detalleReal.filter(p => p.parte === 'I');
       y = dibujarTablaDetalle(y, detalleP1);
 
       // Nueva página para Parte II
@@ -2648,7 +2702,7 @@ async function generarRueda() {
 
       y += 8;
 
-      const detalleP2 = resultado.detallePreguntas.filter(p => p.parte === 'II');
+      const detalleP2 = detalleReal.filter(p => p.parte === 'II');
       y = dibujarTablaDetalle(y, detalleP2);
 
       y += 10;
@@ -2764,6 +2818,7 @@ async function generarRueda() {
     generarConsideraciones();
     generarResumen();
     await generarGraficoBarras();
+    await generarGraficoBarrasAdaptado();
     await generarRueda();
     generarAnalisisCompleto();
     generarConsistencia();

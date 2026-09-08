@@ -3,6 +3,14 @@
  * GENERADOR DE PDF PROFESIONAL - INFORME DISC COMPLETO
  * Versión extendida con toda la información y gráficos
  * ============================================================================
+ *
+ * ⚠️ COPIA IDÉNTICA en public/legacy/pdfGenerator.js — la carga TestDisc.jsx
+ * (descarga inmediata al terminar el test) vía TEST_SCRIPTS, en vez de este
+ * archivo. El informe web standalone (public/informe/index.html) sí carga
+ * este archivo directo. Todo cambio acá hay que copiarlo también a
+ * public/legacy/pdfGenerator.js, o la descarga inmediata queda desactualizada
+ * en silencio (pasó: el PDF de recién-terminado el test no tenía el segundo
+ * gráfico ni la letra exacta del detalle, aunque el informe web sí).
  */
 
 async function generarPDFInforme(data, resultado, respuestasParsed, returnBase64 = false) {

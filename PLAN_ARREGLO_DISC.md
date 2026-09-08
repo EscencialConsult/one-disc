@@ -87,6 +87,8 @@ Decisión de Facundo (7/9/2026): **se mantienen los nombres actuales** de la Lan
 
 ## Fase 6 — Validación final y salida a producción
 
+**Estado (7/9/2026):** puntos 1 y 3 hechos. Migración `migration_detalle_disc.sql` aplicada en Supabase. Test real tomado por la plataforma con un usuario temporal (perfil elegido: Natural D+C, Adaptado S): la fila quedó con `detalle` de 28 pares idénticos a lo clickeado y con PDF subido; el informe web mostró D 71 / I 13 / S 54 / C 63, rueda "Conductor · Celda 10 · 0°", estabilidad con MÁS+MENOS, detalle con palabra y letra, sin aviso de versión anterior; el Panel RRHH lo listó como D con los 14 tests viejos marcados "versión anterior" y fuera de los promedios. Regresión: 19/19 iguales a la baseline. Datos de prueba borrados. Faltan los puntos 2, 4 y 5.
+
 1. Regresión: los 19 tests viejos dan exactamente lo mismo que antes de empezar (Fase 0).
 2. Tres personas reales vuelven a hacer el test (propuesta: Estrella, Samuel y Mercedes). María Laura audita cada PDF a mano contra sus respuestas, pregunta por pregunta, y valida los umbrales de "predominante" y de estabilidad.
 3. Prueba end-to-end en la plataforma: test → PDF → informe web → Panel RRHH → Pack Líder, con un usuario nuevo y uno viejo.

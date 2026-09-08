@@ -17,6 +17,7 @@ import { loadScripts, unloadLegacyScripts } from '../lib/loadScript.js';
 const TEST_SCRIPTS = [
   'https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js',
   '/legacy/discCore.js',
+  '/legacy/discTextos.js',
   '/legacy/discToWheel.js',
   '/legacy/ruedaSuccessInsights5niveles.js',
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.3/jspdf.umd.min.js',

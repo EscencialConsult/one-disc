@@ -77,7 +77,10 @@ bloque('Total (28 preguntas) → barras del informe', c.total);
 console.log(`   Niveles: ${L.map((x) => `${x}=${c.total.niveles[x]}`).join(', ')} (≥${Core.UMBRAL_PREDOMINANTE} predominante, ≤${Core.UMBRAL_BAJO} baja)`);
 
 console.log('\n3) RESULTADO');
-console.log(`   Letra dominante Natural: ${c.natural.dominante}  |  Adaptado: ${c.adaptado.dominante}  |  Barras (total): ${c.total.dominante}`);
+console.log(`   Letra dominante Natural: ${c.natural.dominante}  |  Adaptado: ${c.adaptado.dominante}`);
+const eje = (g, n) => console.log(`   Ejes ${pad(n, 9)} ritmo ${g.ritmo.activo}% activo / ${g.ritmo.pausado}% pausado   ·   foco ${g.foco.tareas}% tareas / ${g.foco.personas}% personas`);
+eje(c.natural, 'Natural:');
+eje(c.adaptado, 'Adaptado:');
 const pn = c.natural.polares, pa = c.adaptado.polares;
 console.log(`   Rueda Natural : ${pn.rol} · celda ${pn.cell} · ${Math.round(pn.angle) % 360}° · intensidad ${Math.round(pn.radius * 100)}%`);
 console.log(`   Rueda Adaptado: ${pa.rol} · celda ${pa.cell} · ${Math.round(pa.angle) % 360}° · intensidad ${Math.round(pa.radius * 100)}%`);
@@ -92,9 +95,16 @@ for (let q = 1; q <= 28; q++) { const d = row.detalle[q] || row.detalle[String(q
 check(L.every((x) => mano.mas[x] === c.total.conteo.mas[x] && mano.menos[x] === c.total.conteo.menos[x]), 'los conteos MÁS/MENOS coinciden con un recuento manual de las 28 preguntas');
 check(L.reduce((a, x) => a + c.total.conteo.mas[x], 0) === 28 && L.reduce((a, x) => a + c.total.conteo.menos[x], 0) === 28, 'hay exactamente 28 MÁS y 28 MENOS');
 // b) La letra dominante es la barra más alta
-const maxBarra = Math.max(...L.map((x) => c.total.valores[x]));
-check(c.total.valores[c.total.dominante] === maxBarra, `la letra dominante (${c.total.dominante}) es la barra más alta (${maxBarra})`);
 check(c.natural.valores[c.natural.dominante] === Math.max(...L.map((x) => c.natural.valores[x])), `la letra Natural (${c.natural.dominante}) es la más alta de la Parte I`);
+// El informe grafica core.natural.valores y el Panel RRHH usa core.natural.dominante:
+// tienen que ser la misma letra. Antes el gráfico usaba el promedio de las 28
+// preguntas y por eso podía contradecir al panel en la misma persona.
+const barraInforme = L.slice().sort((a, b) => c.natural.valores[b] - c.natural.valores[a])[0];
+check(c.natural.valores[barraInforme] === c.natural.valores[c.natural.dominante],
+  `la barra más alta del informe (${barraInforme}) es la letra que muestra el Panel RRHH (${c.natural.dominante})`);
+// Los dos ejes se leen por separado y cada par cierra en 100
+check(c.natural.ritmo.activo + c.natural.ritmo.pausado === 100 && c.natural.foco.tareas + c.natural.foco.personas === 100,
+  'los ejes de ritmo y de foco suman 100 cada uno');
 // c) La rueda apunta al sector de la letra dominante Natural (o entre sus dos letras más altas)
 const letraAngulo = Core.letraPorAngulo(pn.angle);
 const dosAltas = L.slice().sort((a, b) => c.natural.neto[b] - c.natural.neto[a]).slice(0, 2);

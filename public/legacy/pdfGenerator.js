@@ -1607,8 +1607,8 @@ async function generarPDFInforme(data, resultado, respuestasParsed, returnBase64
       // Tarjetas de puntajes
       y += 10;
       const scores = [
-        { label: 'MÁS D/I', sublabel: 'Activo/Extrovertido', val: resultado.masDI, pct: resultado.pctMasDI, color: COLORES.D, nivel: resultado.nivelMasDI },
-        { label: 'MÁS S/C', sublabel: 'Reservado/Metódico', val: resultado.masSC, pct: resultado.pctMasSC, color: COLORES.S, nivel: resultado.nivelMasSC }
+        { label: 'MÁS D/I', sublabel: 'Ritmo activo', val: resultado.masDI, pct: resultado.pctMasDI, color: COLORES.D, nivel: resultado.nivelMasDI },
+        { label: 'MÁS S/C', sublabel: 'Ritmo pausado', val: resultado.masSC, pct: resultado.pctMasSC, color: COLORES.S, nivel: resultado.nivelMasSC }
       ];
 
       scores.forEach((score, i) => {
@@ -1651,8 +1651,8 @@ async function generarPDFInforme(data, resultado, respuestasParsed, returnBase64
 
       y += 50;
       const scores2 = [
-        { label: 'MENOS D/I', sublabel: 'Activo/Extrovertido', val: resultado.menosDI, pct: resultado.pctMenosDI, color: COLORES.I, nivel: resultado.nivelMenosDI },
-        { label: 'MENOS S/C', sublabel: 'Reservado/Metódico', val: resultado.menosSC, pct: resultado.pctMenosSC, color: COLORES.C, nivel: resultado.nivelMenosSC }
+        { label: 'MENOS D/I', sublabel: 'Ritmo activo', val: resultado.menosDI, pct: resultado.pctMenosDI, color: COLORES.I, nivel: resultado.nivelMenosDI },
+        { label: 'MENOS S/C', sublabel: 'Ritmo pausado', val: resultado.menosSC, pct: resultado.pctMenosSC, color: COLORES.C, nivel: resultado.nivelMenosSC }
       ];
 
       scores2.forEach((score, i) => {
@@ -1721,7 +1721,7 @@ async function generarPDFInforme(data, resultado, respuestasParsed, returnBase64
       dibujarCuadro(15, y, 180, 25, COLORES.primario, 0.05);
 
       y += 8;
-      const intro = 'El gráfico de barras DISC muestra la intensidad de cada una de las cuatro dimensiones en tu perfil. Los valores se expresan en una escala de 0 a 100, donde valores superiores a 60 indican una dimensión predominante, y valores inferiores a 40 indican una dimensión menos pronunciada.';
+      const intro = 'El gráfico muestra la intensidad de cada dimensión en tu perfil natural: las veces que elegiste esa letra como MÁS, menos las veces que la elegiste como MENOS. Como el test es de elección forzada, subir en una letra implica bajar en otra: por eso las cuatro barras siempre suman alrededor de 200 y su promedio es siempre 50. Lo que se interpreta es la posición relativa de cada letra dentro del perfil (60 o más = dimensión predominante, 40 o menos = poco marcada), no el valor absoluto de la barra.';
       y = dibujarTexto(intro, 20, y, 170, 9);
 
       y += 15;
@@ -1735,13 +1735,13 @@ async function generarPDFInforme(data, resultado, respuestasParsed, returnBase64
           y += 110;
         } else {
           // Si no hay canvas, dibujar gráfico manualmente
-          const discValues = core ? core.total.valores : calcularValoresDISC(respuestasParsed);
+          const discValues = core ? core.natural.valores : calcularValoresDISC(respuestasParsed);
           dibujarGraficoBarrasManual(15, y, discValues);
           y += 110;
         }
       } catch (error) {
         console.warn('No se pudo capturar el gráfico, dibujando manualmente:', error);
-        const discValues = core ? core.total.valores : calcularValoresDISC(respuestasParsed);
+        const discValues = core ? core.natural.valores : calcularValoresDISC(respuestasParsed);
         dibujarGraficoBarrasManual(15, y, discValues);
         y += 110;
       }
@@ -1982,25 +1982,44 @@ async function generarRueda() {
       // Determinar perfil dominante
       let perfil, color, descripcionPerfil, caracteristicasClave, fortalezasPerfil, areasAtencion;
 
-      if (resultado.pctMasDI >= 60) {
-        perfil = 'Orientación Activa/Extrovertida (D-I)';
+      // Con letra real por pregunta: el perfil se arma con los DOS ejes leídos por
+      // separado (ritmo = D+I vs S+C; foco = D+C vs I+S) más la letra dominante.
+      // Sin ella solo se puede describir el ritmo: el foco requiere distinguir
+      // I de S y D de C, que es justo el dato que los tests viejos no guardaron.
+      const tp = (core && window.DISCTextos) ? window.DISCTextos.perfil(core.natural) : null;
+
+      if (tp) {
+        const COL_LETRA = { D: COLORES.D, I: COLORES.I, S: COLORES.S, C: COLORES.C };
+        perfil = `Perfil ${tp.letra.letra} - ${tp.letra.nombre}`;
+        color = COL_LETRA[tp.letra.letra];
+        descripcionPerfil = `${tp.letra.ubicacion}. ${tp.letra.resumen} Ritmo: ${tp.valores.activo}% activo / ${tp.valores.pausado}% pausado. Foco: ${tp.valores.tareas}% tareas / ${tp.valores.personas}% personas. Son dos ejes independientes: la velocidad con la que actúas no determina si miras primero la tarea o a las personas.`;
+        caracteristicasClave = [
+          `${tp.ritmo.titulo}: ${tp.ritmo.resumen}`,
+        ].concat(tp.ritmo.bullets.slice(0, 2), [
+          `${tp.foco.titulo}: ${tp.foco.resumen}`,
+        ], tp.foco.bullets.slice(0, 2));
+        fortalezasPerfil = tp.letra.fortalezas.slice(0, 4);
+        areasAtencion = tp.letra.atencion.slice(0, 4);
+
+      } else if (resultado.pctMasDI >= 60) {
+        perfil = 'Ritmo Activo (D-I)';
         color = COLORES.D;
-        descripcionPerfil = `Tu perfil muestra una clara orientación hacia la acción y las relaciones. Con un ${resultado.pctMasDI}% de selecciones en características activas/extrovertidas, tiendes a actuar con rapidez, buscar interacción social, preferir entornos dinámicos y motivarte por resultados visibles y reconocimiento externo.`;
+        descripcionPerfil = `Tu perfil muestra un ritmo predominantemente activo. Con un ${resultado.pctMasDI}% de selecciones en características de ritmo acelerado, tiendes a actuar con rapidez, preferir entornos dinámicos y tolerar bien la presión de tiempo. Este eje mide unicamente velocidad: no indica si tu foco esta en las tareas o en las personas, que es un eje distinto e independiente.`;
 
         caracteristicasClave = [
           'Actúas con rapidez y sentido de urgencia',
           'Tomas decisiones ágiles, priorizando la acción',
-          'Buscas interacción social frecuente',
+          'Te impacientas cuando algo avanza más lento de lo necesario',
           'Disfrutas de entornos dinámicos con variedad',
-          'Te motivan resultados visibles y reconocimiento',
+          'Toleras bien los plazos exigentes',
           'Prefieres el cambio sobre la rutina'
         ];
 
         fortalezasPerfil = [
           'Inicias proyectos con energía y determinación',
-          'Generas entusiasmo en equipos',
+          'Destrabas situaciones que quedan estancadas',
           'Te adaptas rápidamente a nuevas situaciones',
-          'Comunicas ideas con claridad y pasión'
+          'Sostienes el rendimiento bajo presión de tiempo'
         ];
 
         areasAtencion = [
@@ -2011,52 +2030,51 @@ async function generarRueda() {
         ];
 
       } else if (resultado.pctMasSC >= 60) {
-        perfil = 'Orientación Reservada/Metódica (S-C)';
+        perfil = 'Ritmo Pausado (S-C)';
         color = COLORES.S;
-        descripcionPerfil = `Tu perfil muestra una clara orientación hacia la estabilidad y la precisión. Con un ${resultado.pctMasSC}% de selecciones en características reservadas/metódicas, tiendes a actuar con reflexión, preferir ambientes estables, valorar la calidad sobre la velocidad y mantener relaciones cercanas de largo plazo.`;
+        descripcionPerfil = `Tu perfil muestra un ritmo predominantemente pausado. Con un ${resultado.pctMasSC}% de selecciones en características de ritmo tranquilo, tiendes a actuar con reflexión, preferir ambientes estables y priorizar hacerlo bien por sobre hacerlo rápido. Este eje mide unicamente velocidad: no indica si tu foco esta en las tareas o en las personas, que es un eje distinto e independiente.`;
 
         caracteristicasClave = [
           'Actúas con reflexión y análisis previo',
           'Tomas decisiones tras considerar toda la información',
           'Prefieres ambientes estables y predecibles',
-          'Valoras la calidad y precisión en tu trabajo',
-          'Trabajas de forma metódica y sistemática',
-          'Mantienes relaciones cercanas y duraderas'
+          'Priorizas hacerlo bien por sobre hacerlo rápido',
+          'Necesitas tiempo para procesar antes de comprometerte',
+          'Sostienes el esfuerzo en procesos largos'
         ];
 
         fortalezasPerfil = [
-          'Aseguras calidad y precisión en entregas',
-          'Mantienes consistencia en el desempeño',
-          'Generas confianza por tu confiabilidad',
-          'Analizas problemas con profundidad'
+          'Aseguras cuidado y consistencia en las entregas',
+          'Mantienes el rendimiento estable en el tiempo',
+          'Generas confianza por tu previsibilidad',
+          'Sostienes procesos que requieren constancia'
         ];
 
         areasAtencion = [
           'Puedes resistirte a cambios necesarios',
-          'Riesgo de "parálisis por análisis"',
-          'Tendencia a evitar confrontaciones',
+          'Riesgo de demorar decisiones buscando más certeza',
+          'Los cambios sin aviso te generan tensión',
           'Necesidad de salir de la zona de confort ocasionalmente'
         ];
 
       } else {
-        perfil = 'Perfil Balanceado/Adaptable';
+        perfil = 'Ritmo Flexible';
         color = COLORES.primario;
-        descripcionPerfil = `Tu perfil muestra un equilibrio entre características activas y reservadas (MÁS D/I: ${resultado.pctMasDI}%, MÁS S/C: ${resultado.pctMasSC}%). Esto indica alta versatilidad conductual, capacidad de adaptación a diferentes contextos y ausencia de preferencias extremas por un estilo u otro.`;
+        descripcionPerfil = `Tu perfil muestra un ritmo flexible, sin preferencia marcada por lo acelerado ni por lo pausado (MÁS D/I: ${resultado.pctMasDI}%, MÁS S/C: ${resultado.pctMasSC}%). Puedes acelerar cuando hay urgencia y bajar el ritmo cuando conviene. Este eje mide unicamente velocidad: no indica si tu foco esta en las tareas o en las personas, que es un eje distinto e independiente.`;
 
         caracteristicasClave = [
-          'Alta versatilidad conductual',
-          'Capacidad de cambiar de ritmo según contexto',
-          'No tienes preferencias extremas',
-          'Flexibilidad para trabajar solo o en equipo',
+          'Capacidad de cambiar de velocidad según el contexto',
+          'Puedes sostener tanto picos de urgencia como procesos largos',
+          'No tienes preferencias extremas de ritmo',
           'Equilibrio entre acción y reflexión',
-          'Adaptabilidad a diferentes tipos de personas'
+          'Te adaptas a equipos que trabajan a distinta velocidad'
         ];
 
         fortalezasPerfil = [
-          'Te adaptas a diversos entornos de trabajo',
-          'Puedes desempeñarte en roles variados',
-          'Comprendes diferentes estilos de trabajo',
-          'Medias efectivamente entre extremos'
+          'Te adaptas a diversos ritmos de trabajo',
+          'Puedes desempeñarte en contextos variados',
+          'Comprendes tanto la urgencia como la necesidad de tiempo',
+          'Medias entre quienes van rápido y quienes van lento'
         ];
 
         areasAtencion = [
@@ -2145,7 +2163,7 @@ async function generarRueda() {
       const tableData = [
         ['Eje Conductual', 'MÁS', '%', 'Nivel', 'MENOS', '%', 'Nivel', 'Neto'],
         [
-          'D/I (Activo/Extrovertido)',
+          'D/I (Ritmo activo)',
           resultado.masDI.toString(),
           `${resultado.pctMasDI}%`,
           resultado.nivelMasDI,
@@ -2155,7 +2173,7 @@ async function generarRueda() {
           `${resultado.netoDI > 0 ? '+' : ''}${resultado.netoDI}`
         ],
         [
-          'S/C (Reservado/Metódico)',
+          'S/C (Ritmo pausado)',
           resultado.masSC.toString(),
           `${resultado.pctMasSC}%`,
           resultado.nivelMasSC,
@@ -2220,8 +2238,8 @@ async function generarRueda() {
       let tituloConsistencia, textoConsistencia, colorConsistencia, implicaciones;
 
       if (consistencia === 'consistente_DI') {
-        tituloConsistencia = 'Perfil Altamente Consistente: Orientación Activa (D-I)';
-        textoConsistencia = 'Existe alta consistencia en tu perfil conductual. Las características que identificas como MÁS representativas (activas/extrovertidas D-I) son complementarias con las que rechazas como MENOS representativas (reservadas/metódicas S-C). Esto indica un autoconocimiento claro y un patrón conductual bien definido hacia la acción, el liderazgo y la comunicación.';
+        tituloConsistencia = 'Perfil Altamente Consistente: Ritmo Activo (D-I)';
+        textoConsistencia = 'Existe alta consistencia en tu perfil conductual. Las características que identificas como MÁS representativas (ritmo activo, D-I) son complementarias con las que rechazas como MENOS representativas (ritmo pausado, S-C). Esto indica un autoconocimiento claro y una preferencia de ritmo bien definida hacia la acción y la velocidad de respuesta.';
         colorConsistencia = COLORES.S;
 
         implicaciones = [
@@ -2234,7 +2252,7 @@ async function generarRueda() {
 
       } else if (consistencia === 'consistente_SC') {
         tituloConsistencia = 'Perfil Altamente Consistente: Orientación Reservada (S-C)';
-        textoConsistencia = 'Existe alta consistencia en tu perfil. Las características que identificas como MÁS representativas (reservadas/metódicas S-C) son complementarias con las que rechazas como MENOS (activas/extrovertidas D-I). Esto indica autoconocimiento claro hacia la estabilidad, la cooperación, el análisis y la precisión.';
+        textoConsistencia = 'Existe alta consistencia en tu perfil. Las características que identificas como MÁS representativas (ritmo pausado, S-C) son complementarias con las que rechazas como MENOS (ritmo activo, D-I). Esto indica autoconocimiento claro y una preferencia de ritmo bien definida hacia la reflexión y los tiempos largos.';
         colorConsistencia = COLORES.S;
 
         implicaciones = [
@@ -2646,7 +2664,7 @@ async function generarRueda() {
       y += 5;
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
-      const textoLeyenda = 'Cada fila muestra los 4 adjetivos del grupo. D/I = características activas/extrovertidas, S/C = características reservadas/metódicas. La columna "MÁS" indica el grupo de la característica seleccionada como más descriptiva, "MENOS" indica el grupo de la rechazada.';
+      const textoLeyenda = 'Cada fila muestra los 4 adjetivos del grupo. Las columnas "MÁS" y "MENOS" indican la letra exacta que se eligió como más y como menos descriptiva. D e I comparten ritmo activo; S y C, ritmo pausado.';
       dibujarTexto(textoLeyenda, 20, y, 170, 8, COLORES.textoClaro);
     }
 

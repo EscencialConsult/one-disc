@@ -327,9 +327,12 @@ function renderReport(data, resultado, respuestasParsed, detalle) {
   const initials = (data.Nombre || '').charAt(0) + (data.Apellido || '').charAt(0);
   document.getElementById('userAvatar').textContent = initials.toUpperCase();
 
-  // Valores D/I/S/C para el gráfico de barras: con detalle, escala real e
-  // independiente por letra (núcleo); sin detalle, la aproximación anterior.
-  const discValues = core ? core.total.valores : calcularValoresDISC(respuestasParsed);
+  // Valores D/I/S/C del gráfico de barras: el perfil NATURAL (preguntas 1-14).
+  // Es el mismo vector del que sale la letra que muestra el Panel RRHH, así que
+  // la barra más alta y la letra del panel no pueden contradecirse. Antes se
+  // usaba el promedio de las 28 preguntas, que no es un perfil de nadie:
+  // alguien que es D en calma y S bajo presión no es "D-S moderado".
+  const discValues = core ? core.natural.valores : calcularValoresDISC(respuestasParsed);
   
   // ⭐ NUEVO: Renderizar gráfico de barras DISC
   if (window.renderDISCBarChart) {
@@ -356,10 +359,10 @@ function renderReport(data, resultado, respuestasParsed, detalle) {
   renderConsistencia(resultado);
 
   // Interpretations
-  renderInterpretacion('interpMasDI', 'MÁS → D/I (Dominancia / Influencia)', 'Características activas, extrovertidas', resultado.masDI, resultado.pctMasDI, resultado.nivelMasDI, TEXTOS_NIVEL[resultado.nivelMasDI], 'mas');
-  renderInterpretacion('interpMasSC', 'MÁS → S/C (Estabilidad / Cumplimiento)', 'Características reservadas, metódicas', resultado.masSC, resultado.pctMasSC, resultado.nivelMasSC, TEXTOS_NIVEL[resultado.nivelMasSC], 'mas');
-  renderInterpretacion('interpMenosDI', 'MENOS → D/I (Dominancia / Influencia)', 'Rechazo de características activas', resultado.menosDI, resultado.pctMenosDI, resultado.nivelMenosDI, TEXTOS_NIVEL[resultado.nivelMenosDI], 'menos');
-  renderInterpretacion('interpMenosSC', 'MENOS → S/C (Estabilidad / Cumplimiento)', 'Rechazo de características reservadas', resultado.menosSC, resultado.pctMenosSC, resultado.nivelMenosSC, TEXTOS_NIVEL[resultado.nivelMenosSC], 'menos');
+  renderInterpretacion('interpMasDI', 'MÁS → D/I (Ritmo activo)', 'Velocidad de respuesta acelerada', resultado.masDI, resultado.pctMasDI, resultado.nivelMasDI, TEXTOS_NIVEL[resultado.nivelMasDI], 'mas');
+  renderInterpretacion('interpMasSC', 'MÁS → S/C (Ritmo pausado)', 'Velocidad de respuesta tranquila', resultado.masSC, resultado.pctMasSC, resultado.nivelMasSC, TEXTOS_NIVEL[resultado.nivelMasSC], 'mas');
+  renderInterpretacion('interpMenosDI', 'MENOS → D/I (Ritmo activo)', 'Rechazo del ritmo acelerado', resultado.menosDI, resultado.pctMenosDI, resultado.nivelMenosDI, TEXTOS_NIVEL[resultado.nivelMenosDI], 'menos');
+  renderInterpretacion('interpMenosSC', 'MENOS → S/C (Ritmo pausado)', 'Rechazo del ritmo tranquilo', resultado.menosSC, resultado.pctMenosSC, resultado.nivelMenosSC, TEXTOS_NIVEL[resultado.nivelMenosSC], 'menos');
 
   // Partes table
   renderTablaPartes(resultado);
@@ -374,13 +377,13 @@ function renderReport(data, resultado, respuestasParsed, detalle) {
   renderRuedaDISC(respuestasParsed, detalle);
 
   // ⭐ NUEVAS INTERPRETACIONES ESPECÍFICAS
-  renderPerfilDominante(resultado);
+  renderPerfilDominante(resultado, core);
   renderInterpretacionMasEspecifica('interpMasDI', 'DI', resultado.masDI, resultado.pctMasDI, resultado.nivelMasDI);
   renderInterpretacionMasEspecifica('interpMasSC', 'SC', resultado.masSC, resultado.pctMasSC, resultado.nivelMasSC);
   renderInterpretacionMenosEspecifica('interpMenosDI', 'DI', resultado.menosDI, resultado.pctMenosDI, resultado.nivelMenosDI);
   renderInterpretacionMenosEspecifica('interpMenosSC', 'SC', resultado.menosSC, resultado.pctMenosSC, resultado.nivelMenosSC);
   renderInterpretacionPartes(resultado, core);
-  renderImplicacionesPracticas(resultado);
+  renderImplicacionesPracticas(resultado, core);
 }
 
 function renderScoreCard(key, val, pct, nivel) {
@@ -462,8 +465,8 @@ function renderScoreCard(key, val, pct, nivel) {
 function renderTablaPuntuaciones(r) {
   const tbody = document.getElementById('tbodyPuntuaciones');
   const rows = [
-    { label: 'D/I — Activo/Extrovertido', colorClass: 'color-d', mas: r.masDI, pctMas: r.pctMasDI, nivelMas: r.nivelMasDI, menos: r.menosDI, pctMenos: r.pctMenosDI, nivelMenos: r.nivelMenosDI, neto: r.netoDI, netoColor: r.netoDI > 0 ? '#dc2626' : r.netoDI < 0 ? '#2563eb' : '#718096' },
-    { label: 'S/C — Reservado/Metódico', colorClass: 'color-s', mas: r.masSC, pctMas: r.pctMasSC, nivelMas: r.nivelMasSC, menos: r.menosSC, pctMenos: r.pctMenosSC, nivelMenos: r.nivelMenosSC, neto: r.netoSC, netoColor: r.netoSC > 0 ? '#059669' : r.netoSC < 0 ? '#ea580c' : '#718096' }
+    { label: 'D/I — Ritmo activo', colorClass: 'color-d', mas: r.masDI, pctMas: r.pctMasDI, nivelMas: r.nivelMasDI, menos: r.menosDI, pctMenos: r.pctMenosDI, nivelMenos: r.nivelMenosDI, neto: r.netoDI, netoColor: r.netoDI > 0 ? '#dc2626' : r.netoDI < 0 ? '#2563eb' : '#718096' },
+    { label: 'S/C — Ritmo pausado', colorClass: 'color-s', mas: r.masSC, pctMas: r.pctMasSC, nivelMas: r.nivelMasSC, menos: r.menosSC, pctMenos: r.pctMenosSC, nivelMenos: r.nivelMenosSC, neto: r.netoSC, netoColor: r.netoSC > 0 ? '#059669' : r.netoSC < 0 ? '#ea580c' : '#718096' }
   ];
 
   tbody.innerHTML = rows.map(row => {
@@ -513,9 +516,17 @@ function renderInterpretacion(containerId, title, subtitle, freq, pct, nivel, te
 /**
  * Genera interpretación específica del perfil dominante
  */
-function renderPerfilDominante(resultado) {
+function renderPerfilDominante(resultado, core) {
   const card = document.getElementById('perfilDominanteCard');
   if (!card) return;
+
+  // Con letra real por pregunta: los dos ejes se calculan y se leen POR SEPARADO
+  // (ritmo = D+I vs S+C; foco = D+C vs I+S). Antes se deducía el foco del ritmo,
+  // y por eso a un D/I alto el informe le decía "sociable, orientado a personas".
+  if (core && window.DISCTextos) {
+    renderPerfilDominanteEjes(card, core);
+    return;
+  }
 
   const { masDI, masSC, menosDI, menosSC, pctMasDI, pctMasSC } = resultado;
 
@@ -523,47 +534,44 @@ function renderPerfilDominante(resultado) {
 
   // Determinar perfil dominante
   if (pctMasDI >= 60) {
-    perfil = "Orientación Activa/Extrovertida (D-I)";
+    perfil = "Ritmo Activo (D-I)";
     color = "#dc2626";
     gradiente = "from-red-900/20 to-orange-900/20";
     icono = "🚀";
-    descripcion = `Tu perfil muestra una <strong>clara orientación hacia la acción y las relaciones</strong>. Con un ${pctMasDI}% de selecciones en características activas/extrovertidas, tiendes a:
+    descripcion = `Tu perfil muestra un <strong>ritmo predominantemente activo</strong>. Con un ${pctMasDI}% de selecciones en características de ritmo acelerado, tiendes a:
     <ul class="mt-3 space-y-2">
       <li>• <strong>Actuar con rapidez</strong> y tomar decisiones de forma ágil</li>
-      <li>• <strong>Buscar interacción social</strong> y disfrutar del contacto con personas</li>
       <li>• <strong>Preferir entornos dinámicos</strong> con cambios y variedad</li>
-      <li>• <strong>Expresarte abiertamente</strong> y comunicar tus ideas con energía</li>
-      <li>• <strong>Motivarte por resultados</strong> visibles y reconocimiento externo</li>
+      <li>• <strong>Impacientarte</strong> cuando algo avanza más lento de lo necesario</li>
+      <li>• <strong>Tolerar bien la presión</strong> de tiempo y los plazos exigentes</li>
     </ul>
-    <p class="mt-4"><strong class="text-white">En el trabajo:</strong> Destacas en roles que requieren liderazgo, persuasión, gestión de cambios o contacto frecuente con clientes y equipos.</p>`;
+    <p class="mt-4"><strong class="text-white">Nota:</strong> este eje mide únicamente la <em>velocidad</em> con la que procesas y actúas. No indica si tu foco está puesto en las tareas o en las personas: eso es un eje distinto e independiente.</p>`;
   } else if (pctMasSC >= 60) {
-    perfil = "Orientación Reservada/Metódica (S-C)";
+    perfil = "Ritmo Pausado (S-C)";
     color = "#059669";
     gradiente = "from-green-900/20 to-blue-900/20";
     icono = "🎯";
-    descripcion = `Tu perfil muestra una <strong>clara orientación hacia la estabilidad y la precisión</strong>. Con un ${pctMasSC}% de selecciones en características reservadas/metódicas, tiendes a:
+    descripcion = `Tu perfil muestra un <strong>ritmo predominantemente pausado</strong>. Con un ${pctMasSC}% de selecciones en características de ritmo tranquilo, tiendes a:
     <ul class="mt-3 space-y-2">
-      <li>• <strong>Actuar con reflexión</strong> y tomar decisiones tras analizar la información</li>
-      <li>• <strong>Preferir ambientes estables</strong> con procesos claros y predecibles</li>
-      <li>• <strong>Valorar la calidad y precisión</strong> en tu trabajo</li>
-      <li>• <strong>Trabajar de forma metódica</strong> y sistemática</li>
-      <li>• <strong>Mantener relaciones cercanas</strong> de largo plazo con pocas personas</li>
+      <li>• <strong>Actuar con reflexión</strong>, tomándote tiempo antes de comprometerte</li>
+      <li>• <strong>Preferir ambientes estables</strong> y previsibles</li>
+      <li>• <strong>Priorizar hacerlo bien</strong> por sobre hacerlo rápido</li>
+      <li>• <strong>Sostener el esfuerzo</strong> en procesos largos sin perder constancia</li>
     </ul>
-    <p class="mt-4"><strong class="text-white">En el trabajo:</strong> Destacas en roles que requieren atención al detalle, consistencia, análisis profundo o mantenimiento de estándares de calidad.</p>`;
+    <p class="mt-4"><strong class="text-white">Nota:</strong> este eje mide únicamente la <em>velocidad</em> con la que procesas y actúas. No indica si tu foco está puesto en las tareas o en las personas: eso es un eje distinto e independiente.</p>`;
   } else {
-    perfil = "Perfil Balanceado/Adaptable";
+    perfil = "Ritmo Flexible";
     color = "#7c3aed";
     gradiente = "from-purple-900/20 to-pink-900/20";
     icono = "⚖️";
-    descripcion = `Tu perfil muestra un <strong>equilibrio entre características activas y reservadas</strong>. Con MÁS D/I: ${pctMasDI}% y MÁS S/C: ${pctMasSC}%, esto indica:
+    descripcion = `Tu perfil muestra un <strong>ritmo flexible</strong>, sin preferencia marcada por lo acelerado ni por lo pausado. Con MÁS D/I: ${pctMasDI}% y MÁS S/C: ${pctMasSC}%, esto indica:
     <ul class="mt-3 space-y-2">
-      <li>• <strong>Alta versatilidad conductual</strong> — puedes adaptarte a diferentes contextos</li>
-      <li>• <strong>Capacidad de cambiar de ritmo</strong> según las necesidades de la situación</li>
-      <li>• <strong>No tienes preferencias extremas</strong> por un estilo u otro</li>
-      <li>• <strong>Flexibilidad para trabajar</strong> tanto en equipo como de forma independiente</li>
+      <li>• <strong>Capacidad de cambiar de velocidad</strong> según las necesidades de la situación</li>
+      <li>• <strong>Puedes sostener</strong> tanto picos de urgencia como procesos largos</li>
+      <li>• <strong>No tienes preferencias extremas</strong> por un ritmo u otro</li>
       <li>• <strong>Equilibrio entre acción y reflexión</strong></li>
     </ul>
-    <p class="mt-4"><strong class="text-white">En el trabajo:</strong> Tu adaptabilidad es tu mayor fortaleza. Puedes desempeñarte bien en roles diversos, aunque podrías beneficiarte de definir tu zona de máximo rendimiento.</p>`;
+    <p class="mt-4"><strong class="text-white">Nota:</strong> este eje mide únicamente la <em>velocidad</em> con la que procesas y actúas. No indica si tu foco está puesto en las tareas o en las personas: eso es un eje distinto e independiente.</p>`;
   }
 
   card.className = `profile-dominant-card reveal bg-gradient-to-br ${gradiente} border border-l-4 rounded-2xl p-8 mb-10`;
@@ -585,6 +593,65 @@ function renderPerfilDominante(resultado) {
 }
 
 /**
+ * Perfil del evaluado leído como tres cosas distintas y no derivables entre sí:
+ * ritmo (qué tan rápido), foco (qué mira primero) y estilo (la letra, que es
+ * la combinación de ambos). Los textos salen de discTextos.js, donde cada
+ * bloque recibe solo su propio eje.
+ */
+function renderPerfilDominanteEjes(card, core) {
+  const g = core.natural;
+  const t = window.DISCTextos.perfil(g);
+  const COLOR = { D: '#dc2626', I: '#d97706', S: '#059669', C: '#2563eb' };
+  const color = COLOR[g.dominante] || '#7c3aed';
+
+  const barra = (izqLabel, izqVal, derLabel, derVal, colIzq, colDer) => `
+    <div class="mb-4">
+      <div class="flex justify-between text-xs font-semibold mb-1.5">
+        <span style="color:${colIzq};">${izqLabel} ${izqVal}%</span>
+        <span style="color:${colDer};">${derVal}% ${derLabel}</span>
+      </div>
+      <div class="h-2.5 rounded-full overflow-hidden flex" style="background:${colDer};">
+        <div style="width:${izqVal}%;background:${colIzq};"></div>
+      </div>
+    </div>`;
+
+  const lista = (items) => `<ul class="mt-2 space-y-1.5 text-sm text-gray-300">${items.map((i) => `<li>• ${i}</li>`).join('')}</ul>`;
+
+  const bloque = (titulo, resumen, items, c) => `
+    <div class="bg-black/20 border border-white/5 rounded-xl p-5" style="border-left:3px solid ${c};">
+      <h4 class="font-exo font-bold mb-1" style="color:${c};">${titulo}</h4>
+      <p class="text-sm text-gray-400 mb-2">${resumen}</p>
+      ${lista(items)}
+    </div>`;
+
+  card.className = 'profile-dominant-card reveal bg-gradient-to-br from-slate-900/60 to-slate-800/60 border border-l-4 rounded-2xl p-8 mb-10';
+  card.style.borderLeftColor = color;
+
+  card.innerHTML = `
+    <div class="mb-6">
+      <h3 class="font-exo text-2xl font-bold mb-1" style="color:${color};">Perfil ${t.letra.letra} — ${t.letra.nombre}</h3>
+      <p class="text-sm text-gray-400">${t.letra.ubicacion}. ${t.letra.resumen}</p>
+    </div>
+
+    <div class="mb-6">
+      ${barra('Activo', t.valores.activo, 'Pausado', t.valores.pausado, '#dc2626', '#059669')}
+      ${barra('Tareas', t.valores.tareas, 'Personas', t.valores.personas, '#2563eb', '#d97706')}
+      <p class="text-[11px] text-gray-500 leading-relaxed">
+        Son dos ejes independientes: qué tan rápido actúas no dice nada sobre si miras primero
+        la tarea o a las personas. Las cuatro combinaciones son igualmente válidas.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+      ${bloque(t.ritmo.titulo, t.ritmo.resumen, t.ritmo.bullets, '#6be1e3')}
+      ${bloque(t.foco.titulo, t.foco.resumen, t.foco.bullets, '#e17bd7')}
+    </div>
+
+    ${bloque(`Estilo ${t.letra.letra} — ${t.letra.nombre}`, t.letra.ubicacion, t.letra.bullets, color)}
+  `;
+}
+
+/**
  * Genera interpretación específica de cada eje MÁS
  */
 function renderInterpretacionMasEspecifica(containerId, eje, freq, pct, nivel) {
@@ -595,57 +662,57 @@ function renderInterpretacionMasEspecifica(containerId, eje, freq, pct, nivel) {
 
   if (eje === 'DI') {
     color = '#dc2626';
-    titulo = 'Eje Activo/Extrovertido (D-I)';
-    
+    titulo = 'Eje de Ritmo — Activo (D-I)';
+
     if (pct >= 75) {
-      interpretacion = `<strong>Identificación muy fuerte (${freq}/28 veces, ${pct}%).</strong> Te identificas profundamente con características activas y extrovertidas. Esto significa que:
+      interpretacion = `<strong>Identificación muy fuerte (${freq}/28 veces, ${pct}%).</strong> Te identificas profundamente con las características de ritmo activo. Esto significa que:
       <ul class="mt-2 ml-4 space-y-1.5">
         <li>• Eres naturalmente <strong>orientado a la acción</strong> y te impacientas con la inactividad</li>
         <li>• Prefieres <strong>ritmo rápido</strong> y te aburres con tareas lentas o repetitivas</li>
-        <li>• Disfrutas de la <strong>interacción social</strong> y te energiza estar con personas</li>
+        <li>• Te energiza el <strong>movimiento y el cambio</strong> por sobre la rutina</li>
         <li>• Tomas decisiones <strong>rápidamente</strong>, a veces sin analizar todos los detalles</li>
-        <li>• Te motiva el <strong>reconocimiento externo</strong> y los resultados visibles</li>
+        <li>• Toleras bien la <strong>urgencia y la presión de tiempo</strong></li>
       </ul>`;
     } else if (pct >= 55) {
-      interpretacion = `<strong>Identificación notable (${freq}/28 veces, ${pct}%).</strong> Tiendes hacia características activas y extrovertidas, aunque con cierta flexibilidad. Esto indica que:
+      interpretacion = `<strong>Identificación notable (${freq}/28 veces, ${pct}%).</strong> Tiendes hacia un ritmo activo, aunque con cierta flexibilidad. Esto indica que:
       <ul class="mt-2 ml-4 space-y-1.5">
         <li>• Prefieres la <strong>acción sobre la espera</strong>, aunque puedes ser paciente cuando es necesario</li>
-        <li>• Disfrutas de la <strong>interacción social</strong> pero también valoras momentos de trabajo individual</li>
+        <li>• Te mueves con comodidad ante <strong>plazos exigentes</strong></li>
         <li>• Eres <strong>proactivo</strong> pero no impulsivo</li>
         <li>• Te adaptas bien a <strong>cambios</strong> en el entorno</li>
       </ul>`;
     } else if (pct >= 35) {
-      interpretacion = `<strong>Identificación moderada (${freq}/28 veces, ${pct}%).</strong> Muestras un equilibrio entre características activas y otras cualidades. Esto sugiere que:
+      interpretacion = `<strong>Identificación moderada (${freq}/28 veces, ${pct}%).</strong> Muestras un equilibrio entre el ritmo activo y el pausado. Esto sugiere que:
       <ul class="mt-2 ml-4 space-y-1.5">
         <li>• Puedes <strong>alternar entre acción y reflexión</strong> según el contexto</li>
         <li>• No tienes una preferencia marcada por ritmo rápido o lento</li>
-        <li>• Tu nivel de <strong>extraversión es situacional</strong></li>
+        <li>• Tu <strong>velocidad de respuesta es situacional</strong></li>
         <li>• Eres <strong>versátil</strong> en diferentes entornos de trabajo</li>
       </ul>`;
     } else {
-      interpretacion = `<strong>Identificación baja (${freq}/28 veces, ${pct}%).</strong> No te identificas fuertemente con características activas/extrovertidas. Esto indica que:
+      interpretacion = `<strong>Identificación baja (${freq}/28 veces, ${pct}%).</strong> No te identificas con el ritmo activo. Esto indica que:
       <ul class="mt-2 ml-4 space-y-1.5">
         <li>• Probablemente prefieres <strong>ritmos más pausados</strong> y reflexivos</li>
-        <li>• Valoras la <strong>calidad sobre la velocidad</strong></li>
-        <li>• Prefieres <strong>trabajar de forma independiente</strong> o en grupos pequeños</li>
-        <li>• Tu orientación es más hacia <strong>tareas y procesos</strong> que hacia personas</li>
+        <li>• Prefieres <strong>hacer las cosas bien antes que rápido</strong></li>
+        <li>• Necesitas <strong>tiempo para procesar</strong> antes de comprometerte con una acción</li>
+        <li>• Los <strong>cambios abruptos</strong> o sin aviso te resultan incómodos</li>
       </ul>`;
     }
   } else {
     color = '#059669';
-    titulo = 'Eje Reservado/Metódico (S-C)';
-    
+    titulo = 'Eje de Ritmo — Pausado (S-C)';
+
     if (pct >= 75) {
-      interpretacion = `<strong>Identificación muy fuerte (${freq}/28 veces, ${pct}%).</strong> Te identificas profundamente con características reservadas y metódicas. Esto significa que:
+      interpretacion = `<strong>Identificación muy fuerte (${freq}/28 veces, ${pct}%).</strong> Te identificas profundamente con las características de ritmo pausado. Esto significa que:
       <ul class="mt-2 ml-4 space-y-1.5">
         <li>• Valoras la <strong>estabilidad y previsibilidad</strong> en tu entorno</li>
         <li>• Prefieres <strong>ritmos pausados</strong> que te permitan hacer las cosas bien</li>
-        <li>• Eres <strong>reflexivo y analítico</strong> antes de actuar</li>
-        <li>• Priorizas la <strong>calidad y precisión</strong> sobre la rapidez</li>
-        <li>• Te sientes cómodo con <strong>rutinas y procesos establecidos</strong></li>
+        <li>• Eres <strong>reflexivo</strong> antes de actuar</li>
+        <li>• Priorizas <strong>hacerlo bien</strong> por sobre hacerlo rápido</li>
+        <li>• Sostienes el esfuerzo en <strong>procesos largos</strong> sin perder constancia</li>
       </ul>`;
     } else if (pct >= 55) {
-      interpretacion = `<strong>Identificación notable (${freq}/28 veces, ${pct}%).</strong> Tiendes hacia características reservadas y metódicas, con cierta adaptabilidad. Esto indica que:
+      interpretacion = `<strong>Identificación notable (${freq}/28 veces, ${pct}%).</strong> Tiendes hacia un ritmo pausado, con cierta adaptabilidad. Esto indica que:
       <ul class="mt-2 ml-4 space-y-1.5">
         <li>• Prefieres <strong>planificar antes que improvisar</strong></li>
         <li>• Valoras la <strong>consistencia y confiabilidad</strong></li>
@@ -653,20 +720,20 @@ function renderInterpretacionMasEspecifica(containerId, eje, freq, pct, nivel) {
         <li>• Puedes adaptarte a cambios si tienes <strong>tiempo para prepararte</strong></li>
       </ul>`;
     } else if (pct >= 35) {
-      interpretacion = `<strong>Identificación moderada (${freq}/28 veces, ${pct}%).</strong> Muestras equilibrio entre características reservadas y otras cualidades. Esto sugiere que:
+      interpretacion = `<strong>Identificación moderada (${freq}/28 veces, ${pct}%).</strong> Muestras equilibrio entre el ritmo pausado y el activo. Esto sugiere que:
       <ul class="mt-2 ml-4 space-y-1.5">
         <li>• Puedes trabajar tanto con <strong>procesos estructurados como flexibles</strong></li>
         <li>• No dependes excesivamente de la estabilidad ni del cambio</li>
-        <li>• Balanceas <strong>análisis y acción</strong></li>
+        <li>• Balanceas <strong>reflexión y acción</strong></li>
         <li>• Eres adaptable a diferentes ritmos de trabajo</li>
       </ul>`;
     } else {
-      interpretacion = `<strong>Identificación baja (${freq}/28 veces, ${pct}%).</strong> No te identificas fuertemente con características reservadas/metódicas. Esto indica que:
+      interpretacion = `<strong>Identificación baja (${freq}/28 veces, ${pct}%).</strong> No te identificas con el ritmo pausado. Esto indica que:
       <ul class="mt-2 ml-4 space-y-1.5">
         <li>• Probablemente prefieres <strong>ritmos más dinámicos</strong> y acelerados</li>
         <li>• Te adaptas bien a <strong>cambios e imprevistos</strong></li>
-        <li>• Prefieres la <strong>acción sobre el análisis</strong> prolongado</li>
-        <li>• Tu orientación es más hacia <strong>resultados rápidos</strong> que procesos largos</li>
+        <li>• Prefieres la <strong>acción sobre la deliberación</strong> prolongada</li>
+        <li>• Te impacientas cuando <strong>algo avanza despacio</strong></li>
       </ul>`;
     }
   }
@@ -698,59 +765,59 @@ function renderInterpretacionMenosEspecifica(containerId, eje, freq, pct, nivel)
 
   if (eje === 'DI') {
     color = '#ea580c';
-    titulo = 'Rechazo de Características Activas/Extrovertidas (D-I)';
-    
+    titulo = 'Rechazo del Ritmo Activo (D-I)';
+
     if (pct >= 75) {
-      interpretacion = `<strong>Rechazo muy marcado (${freq}/28 veces, ${pct}%).</strong> Rechazas consistentemente las características activas y extrovertidas. Esto revela que:
+      interpretacion = `<strong>Rechazo muy marcado (${freq}/28 veces, ${pct}%).</strong> Rechazas consistentemente las características de ritmo activo. Esto revela que:
       <ul class="mt-2 ml-4 space-y-1.5">
         <li>• No te sientes cómodo con <strong>ritmos acelerados</strong> ni presión de tiempo</li>
-        <li>• Prefieres <strong>evitar la confrontación</strong> y el liderazgo directo</li>
-        <li>• La <strong>interacción social intensa</strong> te agota emocionalmente</li>
-        <li>• No disfrutas de <strong>entornos competitivos</strong> o de alta exigencia</li>
+        <li>• Te desgasta trabajar con <strong>urgencia permanente</strong></li>
+        <li>• Los <strong>cambios frecuentes de rumbo</strong> te resultan agotadores</li>
+        <li>• No disfrutas de entornos de <strong>alta exigencia</strong> sostenida</li>
         <li>• Rechazas activamente roles que requieran <strong>toma de decisiones rápidas</strong></li>
       </ul>`;
     } else if (pct >= 55) {
-      interpretacion = `<strong>Rechazo notable (${freq}/28 veces, ${pct}%).</strong> Tiendes a evitar características activas/extrovertidas. Esto sugiere que:
+      interpretacion = `<strong>Rechazo notable (${freq}/28 veces, ${pct}%).</strong> Tiendes a evitar el ritmo activo. Esto sugiere que:
       <ul class="mt-2 ml-4 space-y-1.5">
         <li>• Prefieres <strong>entornos tranquilos</strong> sin urgencias constantes</li>
-        <li>• La <strong>exposición social prolongada</strong> te resulta agotadora</li>
-        <li>• Evitas <strong>asumir protagonismo</strong> en grupos grandes</li>
+        <li>• Trabajar contrarreloj de forma prolongada te <strong>desgasta</strong></li>
+        <li>• Evitas comprometerte con plazos que no puedas <strong>cumplir con cuidado</strong></li>
         <li>• No te atrae trabajar bajo <strong>presión constante</strong></li>
       </ul>`;
     } else if (pct >= 35) {
       interpretacion = `<strong>Rechazo moderado (${freq}/28 veces, ${pct}%).</strong> No rechazas fuertemente estas características. Esto indica que:
       <ul class="mt-2 ml-4 space-y-1.5">
         <li>• Puedes <strong>tolerar ritmos acelerados</strong> en ciertas circunstancias</li>
-        <li>• La interacción social no te incomoda si es <strong>en dosis moderadas</strong></li>
+        <li>• La urgencia no te incomoda si es <strong>puntual y no permanente</strong></li>
         <li>• Tienes cierta <strong>flexibilidad</strong> para adaptarte a diferentes ritmos</li>
       </ul>`;
     } else {
-      interpretacion = `<strong>Rechazo bajo (${freq}/28 veces, ${pct}%).</strong> Rara vez rechazas características activas/extrovertidas. Esto indica que:
+      interpretacion = `<strong>Rechazo bajo (${freq}/28 veces, ${pct}%).</strong> Rara vez rechazas las características de ritmo activo. Esto indica que:
       <ul class="mt-2 ml-4 space-y-1.5">
-        <li>• Te sientes cómodo con <strong>dinámicas activas</strong> y sociales</li>
+        <li>• Te sientes cómodo con <strong>dinámicas de alta velocidad</strong></li>
         <li>• No te incomodan los <strong>cambios ni la presión</strong></li>
         <li>• Probablemente <strong>disfrutas de la acción</strong> y el movimiento</li>
       </ul>`;
     }
   } else {
     color = '#2563eb';
-    titulo = 'Rechazo de Características Reservadas/Metódicas (S-C)';
-    
+    titulo = 'Rechazo del Ritmo Pausado (S-C)';
+
     if (pct >= 75) {
-      interpretacion = `<strong>Rechazo muy marcado (${freq}/28 veces, ${pct}%).</strong> Rechazas consistentemente características reservadas y metódicas. Esto revela que:
+      interpretacion = `<strong>Rechazo muy marcado (${freq}/28 veces, ${pct}%).</strong> Rechazas consistentemente las características de ritmo pausado. Esto revela que:
       <ul class="mt-2 ml-4 space-y-1.5">
         <li>• Te <strong>frustran las rutinas</strong> y los procesos lentos</li>
-        <li>• No disfrutas de <strong>trabajos repetitivos</strong> o detallistas</li>
+        <li>• No disfrutas de <strong>trabajos repetitivos</strong> ni de ciclos largos</li>
         <li>• Rechazas activamente <strong>ambientes estables</strong> sin variedad</li>
-        <li>• Prefieres la <strong>acción sobre el análisis</strong> prolongado</li>
-        <li>• Te impacientas con <strong>procesos burocráticos</strong> o normativos</li>
+        <li>• Prefieres <strong>avanzar y corregir</strong> antes que esperar a tener todo resuelto</li>
+        <li>• Te impacientas cuando algo <strong>tarda más de lo necesario</strong></li>
       </ul>`;
     } else if (pct >= 55) {
-      interpretacion = `<strong>Rechazo notable (${freq}/28 veces, ${pct}%).</strong> Tiendes a evitar características reservadas/metódicas. Esto sugiere que:
+      interpretacion = `<strong>Rechazo notable (${freq}/28 veces, ${pct}%).</strong> Tiendes a evitar el ritmo pausado. Esto sugiere que:
       <ul class="mt-2 ml-4 space-y-1.5">
         <li>• Prefieres <strong>variedad sobre estabilidad</strong></li>
         <li>• Te aburres con <strong>tareas demasiado estructuradas</strong></li>
-        <li>• No te atrae el <strong>trabajo minucioso</strong> con detalles</li>
+        <li>• Los <strong>tiempos de espera</strong> te resultan difíciles de sostener</li>
         <li>• Evitas roles que requieran <strong>mucha paciencia</strong></li>
       </ul>`;
     } else if (pct >= 35) {
@@ -758,14 +825,14 @@ function renderInterpretacionMenosEspecifica(containerId, eje, freq, pct, nivel)
       <ul class="mt-2 ml-4 space-y-1.5">
         <li>• Puedes trabajar con <strong>procesos estructurados</strong> cuando es necesario</li>
         <li>• Toleras la <strong>estabilidad</strong> sin sentirte atrapado</li>
-        <li>• Tienes <strong>cierta paciencia</strong> para trabajos metódicos</li>
+        <li>• Tienes <strong>cierta paciencia</strong> para trabajos que llevan tiempo</li>
       </ul>`;
     } else {
-      interpretacion = `<strong>Rechazo bajo (${freq}/28 veces, ${pct}%).</strong> Rara vez rechazas características reservadas/metódicas. Esto indica que:
+      interpretacion = `<strong>Rechazo bajo (${freq}/28 veces, ${pct}%).</strong> Rara vez rechazas las características de ritmo pausado. Esto indica que:
       <ul class="mt-2 ml-4 space-y-1.5">
         <li>• Te sientes cómodo con <strong>procesos estructurados</strong></li>
         <li>• Valoras la <strong>estabilidad y consistencia</strong></li>
-        <li>• Probablemente <strong>disfrutas del análisis</strong> y el detalle</li>
+        <li>• Probablemente <strong>disfrutas de los tiempos largos</strong> de trabajo</li>
       </ul>`;
     }
   }
@@ -866,13 +933,22 @@ function renderInterpretacionPartes(resultado, core) {
 /**
  * Genera implicaciones prácticas del perfil
  */
-function renderImplicacionesPracticas(resultado) {
+function renderImplicacionesPracticas(resultado, core) {
   const { pctMasDI, pctMasSC } = resultado;
 
   // Determinar perfil dominante
   let fortalezas, atencion, comunicacion, entorno;
 
-  if (pctMasDI >= 60) {
+  // Fortalezas, puntos de atención, cómo comunicarse y qué entorno necesita son
+  // contenido de LETRA, no de eje: "liderar equipos" es D, "motivar a otros" es I,
+  // y el eje D/I no permite distinguirlos. Con letra real se usa la letra.
+  const tl = (core && window.DISCTextos) ? window.DISCTextos.LETRA[core.natural.dominante] : null;
+  if (tl) {
+    fortalezas = tl.fortalezas;
+    atencion = tl.atencion;
+    comunicacion = tl.comunicacion;
+    entorno = tl.entorno;
+  } else if (pctMasDI >= 60) {
     // Perfil activo/extrovertido
     fortalezas = [
       'Capacidad de generar resultados rápidos y tomar decisiones ágiles',

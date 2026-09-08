@@ -345,7 +345,7 @@ export default function Landing() {
             {/* Rueda de cuadrantes DISC */}
             <div className="flex flex-col items-center justify-center rounded-[28px] border border-slate-200 bg-white p-11 shadow-[0_25px_60px_rgba(15,23,42,.10)]">
                 <span className="mb-3 text-sm font-semibold tracking-[.02em] text-slate-700">
-                  Activo / Extrovertido
+                  Ritmo activo
                 </span>
                 <div className="flex w-full items-center justify-center gap-4">
                   <span className="text-sm font-semibold tracking-[.02em] text-slate-700">Tarea</span>
@@ -368,7 +368,7 @@ export default function Landing() {
                   <span className="text-sm font-semibold tracking-[.02em] text-slate-700">Personas</span>
                 </div>
                 <span className="mt-3 text-sm font-semibold tracking-[.02em] text-slate-700">
-                  Pasivo / Reservado
+                  Ritmo pausado
                 </span>
               </div>
           </section>

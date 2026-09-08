@@ -57,9 +57,34 @@
   /** Neto por letra (MÁS − MENOS), de −14 a +14 por parte. */
   function neto(c) { const n = {}; LETRAS.forEach((L) => { n[L] = c.mas[L] - c.menos[L]; }); return n; }
 
-  /** Escala 0-100 independiente por letra: (neto + 14) / 28 × 100. Las cuatro NO suman 100. */
+  /**
+   * Escala 0-100 por letra: (neto + 14) / 28 × 100.
+   * OJO: el test es de elección forzada (ipsativo), así que Σ neto = 0 siempre
+   * y por lo tanto las cuatro barras suman ~200 en toda persona (promedio 50).
+   * Lo interpretable es la posición relativa de cada letra, no el valor absoluto.
+   */
   function a100(x) { return Math.max(0, Math.min(100, Math.round(((x + PREGUNTAS_POR_PARTE) / (2 * PREGUNTAS_POR_PARTE)) * 100))); }
   function escala100(n) { const s = {}; LETRAS.forEach((L) => { s[L] = a100(n[L]); }); return s; }
+
+  /**
+   * Los dos ejes del modelo, calculados por separado. Son ortogonales: saber
+   * uno NO determina el otro (D e I comparten ritmo pero no foco; I y S
+   * comparten foco pero no ritmo). Cada par suma exactamente 100.
+   *
+   *   RITMO = D+I (activo)   vs  S+C (pausado)
+   *   FOCO  = D+C (tareas)   vs  I+S (personas)
+   *
+   * Se calculan sobre el neto (MÁS − MENOS), igual que las letras, para que
+   * todo el informe mida con el mismo insumo.
+   */
+  function ejes(n) {
+    const activo = a100(n.D + n.I);
+    const tareas = a100(n.D + n.C);
+    return {
+      ritmo: { activo, pausado: 100 - activo },
+      foco: { tareas, personas: 100 - tareas },
+    };
+  }
 
   /** Letra dominante: mayor valor; empate → más elecciones MÁS; empate → orden D, I, S, C. */
   function dominante(valores, conteo) {
@@ -133,18 +158,22 @@
     const cA = conteos(detalle, PARTE2.desde, PARTE2.hasta);
     const cT = conteos(detalle, 1, 28);
     const nN = neto(cN), nA = neto(cA), nT = neto(cT);
-    const natural = { conteo: cN, neto: nN, valores: escala100(nN), polares: polares(nN) };
-    const adaptado = { conteo: cA, neto: nA, valores: escala100(nA), polares: polares(nA) };
+    const natural = { conteo: cN, neto: nN, valores: escala100(nN), polares: polares(nN), ...ejes(nN) };
+    const adaptado = { conteo: cA, neto: nA, valores: escala100(nA), polares: polares(nA), ...ejes(nA) };
     natural.dominante = dominante(natural.valores, cN);
     adaptado.dominante = dominante(adaptado.valores, cA);
-    // Valores "globales" (28 preguntas) para el gráfico de barras del informe: neto total de −28 a +28.
+    natural.niveles = {}; LETRAS.forEach((L) => { natural.niveles[L] = nivelIntensidad(natural.valores[L]); });
+    adaptado.niveles = {}; LETRAS.forEach((L) => { adaptado.niveles[L] = nivelIntensidad(adaptado.valores[L]); });
+    // Valores "globales" (28 preguntas). NO es un perfil: promediar calma y presión
+    // describe a alguien que no existe (un D que bajo presión pasa a S no es "D-S
+    // moderado"). Se conserva solo como dato de control, no se muestra en el informe.
     const valoresTotal = {}; LETRAS.forEach((L) => { valoresTotal[L] = Math.max(0, Math.min(100, Math.round(((nT[L] + 28) / 56) * 100))); });
     const niveles = {}; LETRAS.forEach((L) => { niveles[L] = nivelIntensidad(valoresTotal[L]); });
     return {
       natural, adaptado,
       total: { conteo: cT, neto: nT, valores: valoresTotal, niveles, dominante: dominante(valoresTotal, cT) },
       estabilidad: estabilidad(nN, nA),
-      version: 2,
+      version: 3,
     };
   }
 

@@ -899,7 +899,22 @@ function renderInterpretacionPartes(resultado, core) {
     titulo = "Perfil Muy Estable";
     icono = "🎯";
     color = "#059669";
-    interpretacion = `<strong>Tu comportamiento es consistente entre situaciones normales y bajo presión.</strong> Las diferencias entre Parte I y Parte II son mínimas (${diffTotal} puntos de diferencia total), lo que indica que:
+    // Un total bajo puede esconder que casi todo el movimiento esté en una
+    // sola letra (core.estabilidad.concentrada) — ahí no corresponde decir
+    // "no modificas tu conducta" sin nombrar esa excepción puntual.
+    if (core && core.estabilidad.concentrada) {
+      const letraMax = core.estabilidad.letraMax;
+      const nombreMax = window.DISCCore.NOMBRES[letraMax];
+      interpretacion = `<strong>Tu comportamiento es consistente entre situaciones normales y bajo presión.</strong> El núcleo de tu perfil se mantiene y las diferencias totales son mínimas (${diffTotal} puntos), pero hay una excepción puntual que vale la pena notar:
+    <ul class="mt-3 ml-4 space-y-2">
+      <li>• La mayor parte de ese movimiento está concentrada en <strong>${nombreMax} (${letraMax})</strong>, que se ajusta más que el resto bajo presión</li>
+      <li>• El resto de tu perfil <strong>se sostiene</strong> entre situaciones normales y bajo presión</li>
+      <li>• Las personas te perciben como <strong>predecible y congruente</strong>, con esta única excepción</li>
+      <li>• Tu entorno laboral actual <strong>te permite ser mayormente vos mismo</strong></li>
+    </ul>
+    <p class="mt-3 text-cyan-200"><strong>Implicación:</strong> Vale la pena preguntarte qué en tu entorno actual activa más ${nombreMax.toLowerCase()} bajo presión — no necesariamente es negativo, pero es la parte de tu perfil que menos se sostiene.</p>`;
+    } else {
+      interpretacion = `<strong>Tu comportamiento es consistente entre situaciones normales y bajo presión.</strong> Las diferencias entre Parte I y Parte II son mínimas (${diffTotal} puntos de diferencia total), lo que indica que:
     <ul class="mt-3 ml-4 space-y-2">
       <li>• Eres <strong>auténtico</strong> — tu comportamiento natural coincide con tu comportamiento adaptado</li>
       <li>• <strong>No modificas significativamente</strong> tu conducta bajo estrés o presión</li>
@@ -908,6 +923,7 @@ function renderInterpretacionPartes(resultado, core) {
       <li>• Tu entorno laboral actual <strong>te permite ser tú mismo</strong></li>
     </ul>
     <p class="mt-3 text-cyan-200"><strong>Implicación:</strong> Esta estabilidad es positiva, aunque asegúrate de que tu entorno realmente te permita desarrollar todo tu potencial.</p>`;
+    }
   } else if (diffTotal <= corteNucleo) {
     titulo = "Perfil Adaptable con Núcleo Estable";
     icono = "⚖️";

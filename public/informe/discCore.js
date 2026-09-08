@@ -172,6 +172,12 @@
   function rolPorAngulo(angle) { return ROLES[Math.floor((((angle % 360) + 360) % 360) / 45) % 8]; }
   function letraPorAngulo(angle) { const a = ((angle % 360) + 360) % 360; return a < 90 ? 'D' : a < 180 ? 'I' : a < 270 ? 'S' : 'C'; }
 
+  // Un total bajo puede esconder que TODO el movimiento esté concentrado en
+  // una sola letra (ej. total=10 con D:0,I:4,S:1,C:5 — casi todo es C e I).
+  // Umbral inicial, no calibrado por simulación (igual que GAP_*): marca el
+  // caso en que conviene nombrar la letra en vez de decir "sin cambios".
+  const CONCENTRACION_MIN = 4;
+
   /** Estabilidad Natural vs Adaptado: suma de |Δ| en las 4 letras (usa MÁS y MENOS, porque ambos entran en el neto). */
   function estabilidad(netoNatural, netoAdaptado) {
     const porLetra = {}; let total = 0;
@@ -180,7 +186,12 @@
     if (total <= ESTABILIDAD.muyEstable) { nivel = 'muy_estable'; titulo = 'Perfil Muy Estable'; }
     else if (total <= ESTABILIDAD.nucleoEstable) { nivel = 'nucleo_estable'; titulo = 'Perfil Adaptable con Núcleo Estable'; }
     else { nivel = 'adaptacion_significativa'; titulo = 'Perfil con Adaptación Significativa'; }
-    return { total, porLetra, nivel, titulo };
+    // Letra con mayor |Δ|; empate → orden D,I,S,C. Solo importa cuando el
+    // perfil califica como 'muy_estable' pero ese máximo no es despreciable:
+    // ahí el texto no debería decir "sin cambios" sin nombrar la excepción.
+    const letraMax = LETRAS.slice().sort((a, b) => porLetra[b] - porLetra[a] || LETRAS.indexOf(a) - LETRAS.indexOf(b))[0];
+    const concentrada = nivel === 'muy_estable' && porLetra[letraMax] >= CONCENTRACION_MIN;
+    return { total, porLetra, nivel, titulo, letraMax, concentrada };
   }
 
   /** Cálculo completo de un test a partir de su detalle. */

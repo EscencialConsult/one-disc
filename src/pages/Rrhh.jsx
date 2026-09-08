@@ -536,7 +536,7 @@ function CompatibilidadModal({ par, personas, onClose }) {
                 {DISC_INFO[letraA].nombre} + {DISC_INFO[letraB].nombre}
               </h3>
               <span className={`text-xs font-semibold ${riesgo.textColor}`}>
-                {riesgo.emoji} Riesgo de fricción: {riesgo.nivel}
+                {riesgo.emoji} {riesgo.nivel}
               </span>
             </div>
           </div>
@@ -645,7 +645,7 @@ function CompatibilidadTab({ personas }) {
                         <button
                           onClick={() => abrir(fila, col)}
                           className={`flex h-14 w-14 items-center justify-center rounded-xl text-xs font-bold text-black/70 transition-transform hover:scale-105 ${riesgo.color}`}
-                          title={`${fila} + ${col} — Riesgo ${riesgo.nivel}`}
+                          title={`${fila} + ${col} — ${riesgo.nivel}`}
                         >
                           {fila}
                           {col}
@@ -660,15 +660,21 @@ function CompatibilidadTab({ personas }) {
         </div>
         <div className="flex flex-wrap gap-4 border-t border-white/10 px-6 py-4 text-xs text-gray-400">
           <span className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-green-500" /> Bajo — mismo estilo
+            <span className="h-2.5 w-2.5 rounded-full bg-purple-500" /> Espejo — mismo estilo (afinidad alta, con riesgo de punto ciego compartido)
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-yellow-500" /> Medio — comparten un eje
+            <span className="h-2.5 w-2.5 rounded-full bg-orange-500" /> Fricción de prioridades — mismo ritmo, distinta prioridad
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-red-500" /> Alto — no comparten ningún eje
+            <span className="h-2.5 w-2.5 rounded-full bg-yellow-500" /> Fricción de ritmo — misma prioridad, distinto ritmo
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-full bg-red-500" /> Fricción de ritmo y prioridad — no comparten ningún eje
           </span>
         </div>
+        <p className="border-t border-white/10 px-6 py-3 text-[11px] leading-relaxed text-gray-500">
+          Esto describe el <em>tipo</em> de fricción más probable, no un veredicto de "se van a llevar bien o mal": similitud no es lo mismo que compatibilidad.
+        </p>
       </div>
 
       <CompatibilidadModal par={seleccion} personas={personas} onClose={() => setSeleccion(null)} />

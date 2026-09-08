@@ -217,17 +217,29 @@ export const DISC_AXIS = {
 export const DISC_HEX = { D: '#e05454', I: '#e4c76a', S: '#4ecb71', C: '#5498e0' };
 
 /**
- * Nivel de riesgo de fricción entre dos estilos, según cuántos ejes
- * (ritmo/prioridad) comparten — mismo estilo: Bajo; comparten un eje:
- * Medio; no comparten ninguno (diagonales opuestas): Alto.
+ * Tipo de fricción probable entre dos estilos, según qué ejes (ritmo/prioridad)
+ * comparten. Reemplaza el semáforo Bajo/Medio/Alto (PROPUESTA_CONSISTENCIA_DISC.md
+ * §8): "mismo estilo = Bajo/verde" contradecía al propio contenido cualitativo
+ * (DISC_COMPATIBILIDAD['D-D'].tensiones habla de disputa por control) — similitud
+ * no es lo mismo que compatibilidad. Mismo estilo pasa a ser "espejo": máxima
+ * afinidad de superficie, pero con riesgo propio (punto ciego compartido), no
+ * ausencia de riesgo.
  */
 export function nivelRiesgoRelacion(letraA, letraB) {
-  if (letraA === letraB) return { nivel: 'Bajo', color: 'bg-green-500', textColor: 'text-green-400', emoji: '🟢' };
+  if (letraA === letraB) {
+    return { nivel: 'Espejo', color: 'bg-purple-500', textColor: 'text-purple-400', emoji: '🪞' };
+  }
   const a = DISC_AXIS[letraA];
   const b = DISC_AXIS[letraB];
-  const comparten = (a.ritmo === b.ritmo ? 1 : 0) + (a.prioridad === b.prioridad ? 1 : 0);
-  if (comparten === 1) return { nivel: 'Medio', color: 'bg-yellow-500', textColor: 'text-yellow-400', emoji: '🟡' };
-  return { nivel: 'Alto', color: 'bg-red-500', textColor: 'text-red-400', emoji: '🔴' };
+  const compartenRitmo = a.ritmo === b.ritmo;
+  const compartenPrioridad = a.prioridad === b.prioridad;
+  if (compartenRitmo && !compartenPrioridad) {
+    return { nivel: 'Fricción de prioridades', color: 'bg-orange-500', textColor: 'text-orange-400', emoji: '🟠' };
+  }
+  if (!compartenRitmo && compartenPrioridad) {
+    return { nivel: 'Fricción de ritmo', color: 'bg-yellow-500', textColor: 'text-yellow-400', emoji: '🟡' };
+  }
+  return { nivel: 'Fricción de ritmo y prioridad', color: 'bg-red-500', textColor: 'text-red-400', emoji: '🔴' };
 }
 
 /**
@@ -355,7 +367,7 @@ export function narrativaRelacion(letraA, letraB) {
   const compartenPrioridad = a.prioridad === b.prioridad;
 
   if (letraA === letraB) {
-    return `Comparten el mismo estilo (${letraA}): mismo ritmo (${a.ritmo}) y misma prioridad (${a.prioridad}). Se van a entender rápido y sin fricción — el riesgo es que, al parecerse tanto, refuercen el mismo punto ciego en vez de complementarse.`;
+    return `Comparten el mismo estilo (${letraA}): mismo ritmo (${a.ritmo}) y misma prioridad (${a.prioridad}). Presentan condiciones favorables de compatibilidad en ritmo y prioridad, con un riesgo propio: al parecerse tanto, pueden reforzar el mismo punto ciego en vez de complementarse.`;
   }
   if (compartenRitmo && !compartenPrioridad) {
     return `Comparten el ritmo (${a.ritmo}) pero difieren en la prioridad: uno se enfoca en ${a.prioridad.toLowerCase()}, el otro en ${b.prioridad.toLowerCase()}. La fricción más probable va a estar en QUÉ atender primero, no en la velocidad para hacerlo.`;

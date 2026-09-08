@@ -46,6 +46,9 @@ export const CONFIG = {
     rrhh: '/admin/rrhh',
     userboard: '/userboard',
     test: '/test',
+    // Link de Registro Rápido: público, uno fijo por empresa (usuario_admin en la URL).
+    registroRapido: '/registro/:usuarioAdmin',
+    registroRapidoUrl: (usuarioAdmin) => `/registro/${encodeURIComponent(usuarioAdmin)}`,
     // El Informe se sirve como página estática (public/informe/) para mantener
     // su HTML+JS original intacto — es el módulo más delicado (PDF, gráficos).
     informe: '/informe/index.html',

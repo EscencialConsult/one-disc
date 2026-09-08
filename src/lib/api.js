@@ -192,15 +192,42 @@ export async function uploadLogo(adminId, file) {
 /**
  * Cuántos usuarios (créditos consumidos) tiene cada admin — una sola consulta
  * liviana (trae solo la columna admin_id) en vez de N consultas, una por admin.
+ * Los usuarios "pendiente" (en espera por falta de créditos, ver Link de
+ * Registro Rápido) todavía NO consumieron un crédito, así que no cuentan acá.
  */
 export async function getUsuarioCountsByAdmin() {
-  const { data, error } = await supabase.from('usuarios').select('admin_id');
+  const { data, error } = await supabase.from('usuarios').select('admin_id').neq('estado', 'pendiente');
   if (error) throw error;
   const counts = {};
   (data || []).forEach((row) => {
     counts[row.admin_id] = (counts[row.admin_id] || 0) + 1;
   });
   return counts;
+}
+
+/** Admin dueño de un link de registro rápido, buscado por su usuario_admin
+ * (así arma la URL pública /registro/:usuarioAdmin). Sin sesión — la usa la
+ * página pública de auto-registro para mostrar logo/nombre y validar cupo. */
+export async function getAdminByUsuario(usuarioAdmin) {
+  const { data, error } = await supabase
+    .from('admins')
+    .select('*')
+    .ilike('usuario_admin', String(usuarioAdmin || '').trim())
+    .limit(1);
+  if (error) throw error;
+  return (data && data[0]) || null;
+}
+
+/** Cuántos usuarios YA consumen crédito de un admin (activo/inactivo, no
+ * pendiente) — consulta liviana con count exacto, para la página pública. */
+export async function getUsuarioCountActivosByAdmin(adminId) {
+  const { count, error } = await supabase
+    .from('usuarios')
+    .select('id', { count: 'exact', head: true })
+    .eq('admin_id', adminId)
+    .neq('estado', 'pendiente');
+  if (error) throw error;
+  return count || 0;
 }
 
 /* ═══ USUARIOS (hoja "Usuarios") ═══ */
@@ -215,7 +242,7 @@ export async function getUsuariosByAdmin(adminId) {
   return data || [];
 }
 
-export async function createUsuario({ adminId, usuario, password, email, nombre, packStatus }) {
+export async function createUsuario({ adminId, usuario, password, email, nombre, packStatus, estado }) {
   const { data, error } = await supabase
     .from('usuarios')
     .insert({
@@ -225,6 +252,7 @@ export async function createUsuario({ adminId, usuario, password, email, nombre,
       email_user: email || '',
       nombre: nombre || '',
       pack_status: packStatus || '',
+      estado: estado || 'activo',
     })
     .select()
     .single();

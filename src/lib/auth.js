@@ -128,6 +128,15 @@ export const Auth = {
         if (String(userEncontrado.estado || '').trim().toLowerCase() === 'inactivo') {
           return { success: false, message: 'Tu cuenta está inactiva. Contactá a tu administrador.' };
         }
+        // Se registró solo (Link de Registro Rápido) pero su empresa no tenía
+        // créditos disponibles en ese momento — queda a la espera de que el
+        // admin lo habilite (ver AdminDashboard → "Usuarios en espera").
+        if (String(userEncontrado.estado || '').trim().toLowerCase() === 'pendiente') {
+          return {
+            success: false,
+            message: 'Tu registro está pendiente de aprobación. Tu administrador te va a habilitar en breve.',
+          };
+        }
 
         const adminDueño = userEncontrado.admin || {};
 

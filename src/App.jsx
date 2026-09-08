@@ -7,6 +7,7 @@ import AdminDashboard from './pages/AdminDashboard.jsx';
 import Rrhh from './pages/Rrhh.jsx';
 import Userboard from './pages/Userboard.jsx';
 import TestDisc from './pages/TestDisc.jsx';
+import RegistroRapido from './pages/RegistroRapido.jsx';
 
 /**
  * Réplica de Auth.protectPage(): si no hay sesión → login;
@@ -63,6 +64,8 @@ export default function App() {
           </Protected>
         }
       />
+      {/* Link de Registro Rápido: público, sin login, uno fijo por empresa */}
+      <Route path={CONFIG.routes.registroRapido} element={<RegistroRapido />} />
       {/* /informe se sirve estático desde public/informe/index.html (fuera del router) */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

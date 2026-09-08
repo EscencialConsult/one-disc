@@ -471,7 +471,25 @@ export default function AdminDashboard() {
   const [bulkUploading, setBulkUploading] = useState(false);
   const [bulkResult, setBulkResult] = useState(null); // { creados, errores: [{usuario, motivo}] }
   const [csvMapping, setCsvMapping] = useState(null); // { headers, dataRows } mientras se elige el mapeo
+  const [linkCopiado, setLinkCopiado] = useState(false);
+  const [seleccionEspera, setSeleccionEspera] = useState([]); // ids de usuarios "en espera" tildados para habilitar en bloque
   const { showToast, ToastContainer } = useToasts();
+
+  // Link de Registro Rápido — fijo, uno por empresa, en base a su propio usuario_admin.
+  const linkRegistroRapido =
+    typeof window !== 'undefined' && session
+      ? `${window.location.origin}${CONFIG.routes.registroRapidoUrl(session.userName)}`
+      : '';
+
+  function copiarLinkRegistro() {
+    navigator.clipboard
+      .writeText(linkRegistroRapido)
+      .then(() => {
+        setLinkCopiado(true);
+        setTimeout(() => setLinkCopiado(false), 2000);
+      })
+      .catch(() => showToast('No se pudo copiar el link — copialo manualmente', 'error'));
+  }
 
   async function loadUsers() {
     setOverlay({ msg: 'Cargando panel...', sub: 'Obteniendo usuarios...' });
@@ -545,6 +563,10 @@ export default function AdminDashboard() {
   const activos = users.filter((u) => u.estado === 'activo').length;
   const completados = users.filter((u) => u.estado === 'activo' && u.testCompletado).length;
   const pendientes = activos - completados;
+  // Usuarios en espera por falta de créditos (Link de Registro Rápido) — todavía
+  // NO consumieron un crédito, así que se excluyen del conteo de "consumidos".
+  const usuariosEnEspera = users.filter((u) => u.estado === 'pendiente');
+  const consumidos = users.length - usuariosEnEspera.length;
 
   function handleCreateUser(e) {
     e.preventDefault();
@@ -572,7 +594,7 @@ export default function AdminDashboard() {
       showToast(`El usuario "${usuario}" ya existe`, 'error');
       return;
     }
-    if (limiteUsuarios !== null && users.length >= limiteUsuarios) {
+    if (limiteUsuarios !== null && consumidos >= limiteUsuarios) {
       showToast(
         `Llegaste al límite de ${limiteUsuarios} usuario(s) de tu cuenta. Contactá a tu administrador para sumar más créditos.`,
         'error'
@@ -739,7 +761,7 @@ export default function AdminDashboard() {
       return;
     }
 
-    const cupoDisponible = limiteUsuarios !== null ? Math.max(0, limiteUsuarios - users.length) : Infinity;
+    const cupoDisponible = limiteUsuarios !== null ? Math.max(0, limiteUsuarios - consumidos) : Infinity;
     const seVanASaltar = Math.max(0, rows.length - cupoDisponible);
     const avisoCredito =
       seVanASaltar > 0
@@ -763,7 +785,7 @@ export default function AdminDashboard() {
 
         for (let i = 0; i < rows.length; i++) {
           const row = rows[i];
-          if (limiteUsuarios !== null && users.length + creados >= limiteUsuarios) {
+          if (limiteUsuarios !== null && consumidos + creados >= limiteUsuarios) {
             erroresCarga.push({ usuario: row.usuario, motivo: 'Límite de créditos alcanzado, no se creó' });
             continue;
           }
@@ -887,6 +909,75 @@ export default function AdminDashboard() {
     });
   }
 
+  /** Habilita a un usuario "en espera" (se registró por el Link de Registro
+   * Rápido sin cupo disponible) — pasa a activo y recién ahí consume 1 crédito. */
+  function habilitarUsuarioEnEspera(user) {
+    if (limiteUsuarios !== null && consumidos >= limiteUsuarios) {
+      showToast('No tenés créditos disponibles para habilitarlo — sumá más créditos primero', 'error');
+      return;
+    }
+    setConfirm({
+      title: 'Habilitar Usuario',
+      message: `¿Habilitar a <strong>${sanitizeText(user.usuario)}</strong>? Va a consumir 1 crédito de tu cuenta.`,
+      icon: 'activate',
+      btnClass: 'bg-green-500/30 border border-green-500/50 text-green-300',
+      onConfirm: async () => {
+        try {
+          await updateUsuario(user.id, { estado: 'activo' });
+          showToast(`"${user.usuario}" habilitado`, 'success');
+          setSeleccionEspera((prev) => prev.filter((id) => id !== user.id));
+          loadUsers();
+        } catch (error) {
+          showToast('Error: ' + (error.message || ''), 'error');
+        }
+      },
+    });
+  }
+
+  /** Habilita en bloque a los usuarios "en espera" tildados — respeta el
+   * cupo disponible: si seleccionaron más de los que hay crédito, solo
+   * habilita hasta donde alcance y avisa cuántos quedaron afuera. */
+  function habilitarSeleccionados() {
+    const seleccionados = usuariosEnEspera.filter((u) => seleccionEspera.includes(u.id));
+    if (seleccionados.length === 0) return;
+
+    const cupoDisponible = limiteUsuarios !== null ? Math.max(0, limiteUsuarios - consumidos) : Infinity;
+    const aHabilitar = seleccionados.slice(0, cupoDisponible);
+    const seQuedanAfuera = seleccionados.length - aHabilitar.length;
+
+    if (aHabilitar.length === 0) {
+      showToast('No tenés créditos disponibles para habilitar a nadie — sumá más créditos primero', 'error');
+      return;
+    }
+
+    setConfirm({
+      title: 'Habilitar Usuarios en Espera',
+      message: `¿Habilitar a <strong>${aHabilitar.length}</strong> usuario(s)? Van a consumir ${aHabilitar.length} crédito(s) de tu cuenta.${
+        seQuedanAfuera > 0
+          ? `<br/><span class="text-red-400">${seQuedanAfuera} no se van a habilitar por falta de créditos.</span>`
+          : ''
+      }`,
+      icon: 'activate',
+      btnClass: 'bg-green-500/30 border border-green-500/50 text-green-300',
+      onConfirm: async () => {
+        setOverlay({ msg: 'Habilitando usuarios...', sub: '' });
+        let habilitados = 0;
+        for (const user of aHabilitar) {
+          try {
+            await updateUsuario(user.id, { estado: 'activo' });
+            habilitados++;
+          } catch (error) {
+            console.error('Error al habilitar:', error);
+          }
+        }
+        setOverlay(null);
+        setSeleccionEspera([]);
+        showToast(`${habilitados} usuario(s) habilitado(s)`, 'success');
+        loadUsers();
+      },
+    });
+  }
+
   async function toggleUserPack(user, isEnabled) {
     const nuevoValor = isEnabled ? '1' : '';
     showToast('Actualizando permisos...', 'success');
@@ -968,15 +1059,15 @@ export default function AdminDashboard() {
               </div>
               {limiteUsuarios !== null && (
                 <span
-                  title={`Créditos: ${users.length} consumido(s) de ${limiteUsuarios} total`}
+                  title={`Créditos: ${consumidos} consumido(s) de ${limiteUsuarios} total`}
                   className={`inline-flex flex-col items-center gap-0 rounded-xl border px-3 py-1.5 text-center ${
-                    users.length >= limiteUsuarios
+                    consumidos >= limiteUsuarios
                       ? 'border-red-500/40 bg-red-500/10 text-red-300'
                       : 'border-one-cyan/30 bg-one-cyan/10 text-one-cyan'
                   }`}
                 >
-                  <span className="text-xs font-black">{Math.max(0, limiteUsuarios - users.length)} créditos disponibles</span>
-                  <span className="text-[10px] font-medium opacity-70">{users.length}/{limiteUsuarios} usados</span>
+                  <span className="text-xs font-black">{Math.max(0, limiteUsuarios - consumidos)} créditos disponibles</span>
+                  <span className="text-[10px] font-medium opacity-70">{consumidos}/{limiteUsuarios} usados</span>
                 </span>
               )}
             </div>
@@ -1202,6 +1293,90 @@ export default function AdminDashboard() {
           </form>
         </div>
 
+        {/* Link de Registro Rápido — cada empresa tiene el suyo, fijo, en base
+            a su propio usuario_admin. La gente se auto-registra ahí en vez de
+            que el Admin la cargue una por una; cada alta consume 1 crédito. */}
+        <div className="mb-8 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-xl">
+          <div className="border-b border-white/10 bg-gradient-to-r from-one-cyan/10 to-one-pink/10 px-6 py-4">
+            <h3 className="font-title text-lg font-bold">Link de Registro Rápido</h3>
+          </div>
+          <div className="p-6">
+            <p className="mb-4 text-sm text-gray-400">
+              Compartí este link con la gente que tiene que darse de alta — se registran solos, sin que vos
+              tengas que cargarlos uno por uno. Cada registro consume 1 crédito de tu cuenta.
+              {limiteUsuarios !== null &&
+                ' Si no queda crédito disponible en el momento, igual quedan registrados y aparecen abajo en "Usuarios en espera" hasta que sumes más.'}
+            </p>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <input
+                type="text"
+                readOnly
+                value={linkRegistroRapido}
+                onClick={(e) => e.target.select()}
+                className="w-full flex-1 rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 font-mono text-sm text-gray-300 focus:border-one-cyan/50 focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={copiarLinkRegistro}
+                className="flex shrink-0 items-center justify-center gap-2 rounded-full border border-one-cyan/40 bg-gradient-to-r from-one-cyan/20 to-one-pink/20 px-5 py-2.5 text-sm font-bold transition-all hover:-translate-y-0.5 hover:border-one-cyan/60"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                {linkCopiado ? 'Copiado' : 'Copiar link'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Usuarios en espera — se registraron por el Link de Registro Rápido
+            cuando no había crédito disponible. No consumieron crédito todavía. */}
+        {usuariosEnEspera.length > 0 && (
+          <div className="mb-8 overflow-hidden rounded-2xl border border-one-gold/30 bg-gradient-to-br from-one-gold/5 to-white/5 backdrop-blur-xl">
+            <div className="flex flex-col gap-3 border-b border-white/10 bg-gradient-to-r from-one-gold/10 to-one-pink/10 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <h3 className="font-title text-lg font-bold">
+                Usuarios en espera <span className="text-one-gold">({usuariosEnEspera.length})</span>
+              </h3>
+              <button
+                type="button"
+                onClick={habilitarSeleccionados}
+                disabled={seleccionEspera.length === 0}
+                className="flex items-center gap-2 rounded-full border border-one-gold/40 bg-one-gold/10 px-5 py-2 text-sm font-bold text-one-gold transition-all hover:-translate-y-0.5 hover:border-one-gold/60 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Habilitar seleccionados ({seleccionEspera.length})
+              </button>
+            </div>
+            <div className="divide-y divide-white/5">
+              {usuariosEnEspera.map((user) => (
+                <div key={user.id} className="flex flex-wrap items-center gap-3 px-6 py-3">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 shrink-0 accent-one-gold"
+                    checked={seleccionEspera.includes(user.id)}
+                    onChange={(e) =>
+                      setSeleccionEspera((prev) =>
+                        e.target.checked ? [...prev, user.id] : prev.filter((id) => id !== user.id)
+                      )
+                    }
+                  />
+                  <div className="flex-1">
+                    <strong className="text-sm text-gray-200">{user.usuario}</strong>
+                    <span className="ml-2 text-xs text-gray-500">{user.nombre} · {user.email}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => habilitarUsuarioEnEspera(user)}
+                    className="rounded-full border border-one-cyan/40 bg-one-cyan/10 px-4 py-1.5 text-xs font-semibold text-one-cyan transition-all hover:border-one-cyan/60 hover:bg-one-cyan/20"
+                  >
+                    Habilitar
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Carga Masiva de Usuarios (CSV) */}
         <div className="mb-8 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-xl">
           <div className="border-b border-white/10 bg-gradient-to-r from-one-cyan/10 to-one-pink/10 px-6 py-4">
@@ -1213,8 +1388,8 @@ export default function AdminDashboard() {
               siguiente elegís vos qué columna corresponde a usuario, contraseña, email y nombre.
             </p>
             {limiteUsuarios !== null && (
-              <p className={`mb-4 text-sm font-semibold ${users.length >= limiteUsuarios ? 'text-red-400' : 'text-one-cyan'}`}>
-                Créditos disponibles antes de subir: {Math.max(0, limiteUsuarios - users.length)} de {limiteUsuarios}
+              <p className={`mb-4 text-sm font-semibold ${consumidos >= limiteUsuarios ? 'text-red-400' : 'text-one-cyan'}`}>
+                Créditos disponibles antes de subir: {Math.max(0, limiteUsuarios - consumidos)} de {limiteUsuarios}
               </p>
             )}
             <div className="flex flex-wrap items-center gap-3">
@@ -1383,8 +1558,10 @@ export default function AdminDashboard() {
                           </td>
                         )}
                         <td className="px-6 py-4 text-center">
-                          <StatusBadge kind={user.estado === 'activo' ? 'active' : 'inactive'}>
-                            {user.estado.charAt(0).toUpperCase() + user.estado.slice(1)}
+                          <StatusBadge
+                            kind={user.estado === 'activo' ? 'active' : user.estado === 'pendiente' ? 'pending' : 'inactive'}
+                          >
+                            {user.estado === 'pendiente' ? 'En espera' : user.estado.charAt(0).toUpperCase() + user.estado.slice(1)}
                           </StatusBadge>
                         </td>
                         <td className="px-6 py-4 text-center">

@@ -1736,7 +1736,7 @@ async function generarPDFInforme(data, resultado, respuestasParsed, returnBase64
       dibujarCuadro(15, y, 180, 25, COLORES.primario, 0.05);
 
       y += 8;
-      const intro = 'El gráfico muestra la intensidad de cada dimensión en tu perfil natural: las veces que elegiste esa letra como MÁS, menos las veces que la elegiste como MENOS. Como el test es de elección forzada, subir en una letra implica bajar en otra: por eso las cuatro barras siempre suman alrededor de 200 y su promedio es siempre 50. Lo que se interpreta es la posición relativa de cada letra dentro del perfil (60 o más = dimensión predominante, 40 o menos = poco marcada), no el valor absoluto de la barra.';
+      const intro = 'El gráfico muestra la intensidad de cada dimensión en tu perfil natural: las veces que elegiste esa letra como MÁS, menos las veces que la elegiste como MENOS. Como el test es de elección forzada, subir en una letra implica bajar en otra: por eso las cuatro barras siempre suman alrededor de 200 y su promedio es siempre 50. Se interpreta la posición relativa de cada letra dentro del perfil, no el valor absoluto — pero son dos lecturas distintas: tu dimensión principal es la barra más alta (compara tus 4 letras entre sí); que una dimensión sea "elevada" (60 o más) o "baja" (40 o menos) mide qué tan marcada está esa letra en particular, y ambas cosas pueden no coincidir en perfiles más balanceados.';
       y = dibujarTexto(intro, 20, y, 170, 9);
 
       y += 15;
@@ -1772,10 +1772,10 @@ async function generarPDFInforme(data, resultado, respuestasParsed, returnBase64
 
       y += 7;
       const interpretaciones = [
-        'Altura de barras: Indica la intensidad de cada dimensión. Valores altos (>60) muestran características predominantes en tu perfil.',
-        'Barra más alta: Representa tu dimensión conductual dominante, la que más influye en tu comportamiento habitual.',
+        'Barra más alta: es tu dimensión principal — la que más se destaca frente a las otras tres, sin importar su valor absoluto.',
+        'Altura de barras: indica qué tan elevada o baja está cada dimensión en términos absolutos. 60 o más marca una dimensión elevada; 40 o menos, una baja. No es lo mismo que "principal": una dimensión puede ser la más alta de las cuatro sin llegar a 60.',
         'Combinación de barras: El patrón completo define tu estilo único. Por ejemplo, D+I alto = Persuasor, S+C alto = Coordinador.',
-        'Valores balanceados: Si todas las barras están entre 40-60, indica versatilidad y adaptabilidad conductual, sin un estilo predominante marcado.',
+        'Valores balanceados: Si todas las barras están entre 40-60, indica versatilidad y adaptabilidad conductual, sin ninguna dimensión claramente elevada.',
         'Contraste de altura: Gran diferencia entre la barra más alta y más baja indica un perfil muy definido y especializado.'
       ];
 
@@ -2299,7 +2299,7 @@ async function generarRueda() {
         implicaciones = [
           'Tus respuestas al test son coherentes entre sí, sin contradicciones internas',
           'Tenés claridad sobre qué características D/I te representan y cuáles no',
-          'Este dato respalda la confiabilidad del resto del informe',
+          'Este patrón aporta consistencia interna a la interpretación de tus respuestas',
           'No reemplaza al eje Ritmo — para eso, ver Tu Perfil Conductual Dominante'
         ];
 
@@ -2311,7 +2311,7 @@ async function generarRueda() {
         implicaciones = [
           'Tus respuestas al test son coherentes entre sí, sin contradicciones internas',
           'Tenés claridad sobre qué características S/C te representan y cuáles no',
-          'Este dato respalda la confiabilidad del resto del informe',
+          'Este patrón aporta consistencia interna a la interpretación de tus respuestas',
           'No reemplaza al eje Ritmo — para eso, ver Tu Perfil Conductual Dominante'
         ];
 
@@ -2502,7 +2502,7 @@ async function generarRueda() {
       } else if (diffTotal <= corteNucleo) {
         titulo = 'Perfil Adaptable con Núcleo Estable';
         color = COLORES.primario;
-        interpretacion = `Muestras cierta adaptación conductual pero mantienes tu esencia. Hay diferencias moderadas (${diffTotal} puntos). Adaptas tu comportamiento según el contexto pero sin forzarte demasiado. Bajo presión, ajustas algunas conductas pero mantienes tu identidad. Tienes flexibilidad conductual sin perder autenticidad. El esfuerzo de adaptación es manejable y sostenible. Este nivel de adaptación es saludable y muestra inteligencia emocional. Monitorea que no aumente con el tiempo.`;
+        interpretacion = `Muestras cierta adaptación conductual pero mantienes tu esencia. Hay diferencias moderadas (${diffTotal} puntos). Adaptas tu comportamiento según el contexto pero sin forzarte demasiado. Bajo presión, ajustas algunas conductas pero mantienes tu identidad. Tienes flexibilidad conductual sin perder autenticidad. El esfuerzo de adaptación es manejable y sostenible. Este nivel sugiere flexibilidad conductual moderada frente a las demandas del contexto. Monitorea que no aumente con el tiempo.`;
       } else {
         titulo = 'Perfil con Adaptación Significativa';
         color = COLORES.D;

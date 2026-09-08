@@ -946,7 +946,7 @@ function renderInterpretacionPartes(resultado, core) {
       <li>• Tienes <strong>flexibilidad conductual</strong> sin perder autenticidad</li>
       <li>• El esfuerzo de adaptación es <strong>manejable y sostenible</strong></li>
     </ul>
-    <p class="mt-3 text-orange-200"><strong>Implicación:</strong> Este nivel de adaptación es saludable y muestra inteligencia emocional. Monitorea que no aumente con el tiempo.</p>`;
+    <p class="mt-3 text-orange-200"><strong>Implicación:</strong> Este nivel sugiere flexibilidad conductual moderada frente a las demandas del contexto. Monitorea que no aumente con el tiempo.</p>`;
   } else {
     titulo = "Perfil con Adaptación Significativa";
     icono = "⚠️";

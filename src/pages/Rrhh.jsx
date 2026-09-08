@@ -40,6 +40,7 @@ import {
   obtenerCompatibilidad,
   calcularPerfilCompleto,
   afinidadPersonas,
+  lecturaEjesReales,
 } from '../lib/discScoring.js';
 import Footer from '../components/Footer.jsx';
 import { LoadingOverlay, useToasts } from './AdminDashboard.jsx';
@@ -129,6 +130,7 @@ function DireccionRelacion({ persona, contraparte }) {
  */
 function AfinidadReal({ a, b }) {
   const af = afinidadPersonas(a, b);
+  const ejes = lecturaEjesReales(a, b);
   if (!af) {
     return (
       <div className="mb-6 rounded-2xl border border-one-gold/30 bg-one-gold/5 p-5 text-sm text-gray-300">
@@ -141,40 +143,66 @@ function AfinidadReal({ a, b }) {
   // Los tests sin letra real por pregunta no tienen valores por dimensión ni
   // comparación bajo presión confiables: se muestra solo el resumen.
   const detallado = !a.legacy && !b.legacy;
+  const NIVEL_COLOR = { 'casi nula': 'text-green-400', leve: 'text-one-cyan', moderada: 'text-yellow-400', alta: 'text-red-400' };
   return (
-    <div className="mb-6 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-xl">
-      <div className="flex items-center justify-between border-b border-white/10 bg-gradient-to-r from-one-cyan/10 to-one-pink/10 px-6 py-4">
-        <h3 className="font-title text-lg font-bold">Afinidad calculada</h3>
-        <span className={`font-title text-2xl font-black ${color}`}>{af.pct}% · {af.nivel}</span>
-      </div>
-      <div className={`grid grid-cols-1 gap-6 p-6 ${detallado ? 'md:grid-cols-2' : ''}`}>
-        {detallado && <div className="space-y-2">
-          {letras.map((L) => (
-            <div key={L} className="flex items-center gap-3 text-xs">
-              <LetraBadge letra={L} />
-              <div className="flex-1 space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="w-20 shrink-0 truncate text-gray-400">{a.nombre.split(' ')[0]}</span>
-                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/5"><div className={`h-full ${DISC_INFO[L].bg}`} style={{ width: `${a.vectorNatural[L]}%` }} /></div>
-                  <span className="w-8 text-right font-bold text-gray-300">{a.vectorNatural[L]}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-20 shrink-0 truncate text-gray-400">{b.nombre.split(' ')[0]}</span>
-                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/5"><div className={`h-full ${DISC_INFO[L].bg} opacity-60`} style={{ width: `${b.vectorNatural[L]}%` }} /></div>
-                  <span className="w-8 text-right font-bold text-gray-300">{b.vectorNatural[L]}</span>
+    <>
+      <div className="mb-6 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-xl">
+        <div className="flex items-center justify-between border-b border-white/10 bg-gradient-to-r from-one-cyan/10 to-one-pink/10 px-6 py-4">
+          <h3 className="font-title text-lg font-bold">Afinidad calculada</h3>
+          <span className={`font-title text-2xl font-black ${color}`}>{af.pct}% · {af.nivel}</span>
+        </div>
+        <div className={`grid grid-cols-1 gap-6 p-6 ${detallado ? 'md:grid-cols-2' : ''}`}>
+          {detallado && <div className="space-y-2">
+            {letras.map((L) => (
+              <div key={L} className="flex items-center gap-3 text-xs">
+                <LetraBadge letra={L} />
+                <div className="flex-1 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="w-20 shrink-0 truncate text-gray-400">{a.nombre.split(' ')[0]}</span>
+                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/5"><div className={`h-full ${DISC_INFO[L].bg}`} style={{ width: `${a.vectorNatural[L]}%` }} /></div>
+                    <span className="w-8 text-right font-bold text-gray-300">{a.vectorNatural[L]}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-20 shrink-0 truncate text-gray-400">{b.nombre.split(' ')[0]}</span>
+                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/5"><div className={`h-full ${DISC_INFO[L].bg} opacity-60`} style={{ width: `${b.vectorNatural[L]}%` }} /></div>
+                    <span className="w-8 text-right font-bold text-gray-300">{b.vectorNatural[L]}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>}
-        <ul className="space-y-2 text-sm text-gray-300">
-          <li>Similitud de perfiles (4 dimensiones): <strong className="text-gray-100">{af.similitudVector}%</strong></li>
-          <li>Ritmo: {af.compartenRitmo ? <span className="text-green-400">comparten</span> : <span className="text-yellow-400">difieren</span>} · Prioridad: {af.compartenPrioridad ? <span className="text-green-400">comparten</span> : <span className="text-yellow-400">difieren</span>}</li>
-          {detallado && <li>Cambio bajo presión — {a.nombre.split(' ')[0]}: <strong className="text-gray-100">{af.adaptacionA}</strong> · {b.nombre.split(' ')[0]}: <strong className="text-gray-100">{af.adaptacionB}</strong> <span className="text-gray-500">(0 = idéntico, más alto = más adaptación)</span></li>}
-          {detallado && <li className="text-xs text-gray-500">La afinidad baja si alguno de los dos cambia mucho bajo presión: lo que se ve en calma puede no sostenerse.</li>}
-        </ul>
+            ))}
+          </div>}
+          <ul className="space-y-2 text-sm text-gray-300">
+            <li>Similitud de perfiles (4 dimensiones): <strong className="text-gray-100">{af.similitudVector}%</strong></li>
+            <li>Ritmo: {af.compartenRitmo ? <span className="text-green-400">comparten</span> : <span className="text-yellow-400">difieren</span>} · Prioridad: {af.compartenPrioridad ? <span className="text-green-400">comparten</span> : <span className="text-yellow-400">difieren</span>}</li>
+            {detallado && <li>Cambio bajo presión — {a.nombre.split(' ')[0]}: <strong className="text-gray-100">{af.adaptacionA}</strong> · {b.nombre.split(' ')[0]}: <strong className="text-gray-100">{af.adaptacionB}</strong> <span className="text-gray-500">(0 = idéntico, más alto = más adaptación)</span></li>}
+            {detallado && <li className="text-xs text-gray-500">La afinidad baja si alguno de los dos cambia mucho bajo presión: lo que se ve en calma puede no sostenerse.</li>}
+          </ul>
+        </div>
       </div>
-    </div>
+
+      {ejes && (
+        <div className="mb-6 overflow-hidden rounded-2xl border border-white/10 bg-white/5">
+          <div className="border-b border-white/10 px-6 py-3">
+            <h4 className="font-title text-sm font-bold text-gray-200">Lectura por ejes reales</h4>
+            <p className="mt-0.5 text-[11px] text-gray-500">
+              Ritmo y foco por separado, sin combinarlos en un solo número — cada uno es una fricción distinta y accionable.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-2">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Ritmo (tiempos)</p>
+              <p className={`mt-1 text-sm font-bold ${NIVEL_COLOR[ejes.ritmo.nivel]}`}>Diferencia {ejes.ritmo.nivel} ({ejes.ritmo.diff} pts)</p>
+              <p className="mt-1 text-xs text-gray-500">Fricción probable en la velocidad de respuesta y la tolerancia a la urgencia.</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Foco (prioridades)</p>
+              <p className={`mt-1 text-sm font-bold ${NIVEL_COLOR[ejes.foco.nivel]}`}>Diferencia {ejes.foco.nivel} ({ejes.foco.diff} pts)</p>
+              <p className="mt-1 text-xs text-gray-500">Acuerdo o tensión en qué atender primero: tareas/resultados vs. personas/vínculos.</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -912,6 +940,8 @@ export default function Rrhh() {
               legacy: !!perfil.legacy,
               vectorNatural: calcularVectorNatural100(r.Respuestas, r.Detalle),
               vectorAdaptado: completo ? completo.vectorAdaptado : null,
+              ritmoNatural: completo ? completo.ritmoNatural : null,
+              focoNatural: completo ? completo.focoNatural : null,
               estabilidad: completo ? completo.estabilidad : null,
               pdfPath: r.pdf_path || '',
               packStatus: packStatusPorUsuario[r.User] || '',

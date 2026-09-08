@@ -78,6 +78,8 @@ export function calcularPerfilCompleto(detalle) {
   return {
     vectorNatural: c.natural.valores,
     vectorAdaptado: c.adaptado.valores,
+    ritmoNatural: c.natural.ritmo,   // { activo, pausado } — eje real, no derivado de vectorNatural
+    focoNatural: c.natural.foco,     // { tareas, personas }
     estabilidad: c.estabilidad,
     rolNatural: c.natural.polares.rol,
     rolAdaptado: c.adaptado.polares.rol,
@@ -185,6 +187,35 @@ export function afinidadPersonas(a, b) {
   const pct = Math.max(0, Math.min(100, similitudVector + bonusEjes - penalAdaptacion));
   const nivel = pct >= 75 ? 'Alta' : pct >= 50 ? 'Media' : 'Baja';
   return { pct, nivel, similitudVector, compartenRitmo, compartenPrioridad, adaptacionA, adaptacionB };
+}
+
+/**
+ * Lectura de compatibilidad por ejes REALES (numéricos), separada del % único
+ * de `afinidadPersonas` y del tipo de fricción por letra de `nivelRiesgoRelacion`.
+ * PROPUESTA_CONSISTENCIA_DISC.md §8, puntos 1 y 2: ritmo y foco se leen aparte,
+ * sin combinarlos en un solo número, porque cada uno es accionable distinto
+ * para RRHH (uno es fricción de TIEMPOS, el otro de PRIORIDADES).
+ *
+ * Requiere `ritmoNatural`/`focoNatural` de `calcularPerfilCompleto` — null en
+ * tests legacy, que no tienen el foco real (ver §7 de la propuesta).
+ */
+export function lecturaEjesReales(a, b) {
+  if (!a?.ritmoNatural || !a?.focoNatural || !b?.ritmoNatural || !b?.focoNatural) return null;
+
+  const nivelDiferencia = (diff) => {
+    if (diff <= 10) return 'casi nula';
+    if (diff <= 20) return 'leve';
+    if (diff <= 35) return 'moderada';
+    return 'alta';
+  };
+
+  const diffRitmo = Math.abs(a.ritmoNatural.activo - b.ritmoNatural.activo);
+  const diffFoco = Math.abs(a.focoNatural.tareas - b.focoNatural.tareas);
+
+  return {
+    ritmo: { diff: diffRitmo, nivel: nivelDiferencia(diffRitmo) },
+    foco: { diff: diffFoco, nivel: nivelDiferencia(diffFoco) },
+  };
 }
 
 /** Texto de brecha por eje entre la Cultura Actual (promedio del equipo) y la Cultura Ideal (definida por el Admin). */

@@ -57,7 +57,19 @@ export function calcularPerfilDominante(respuestasString, detalle) {
   // la barra más alta del informe). Tests viejos: ángulo de la rueda legacy.
   if (tieneCalculoReal(detalle)) {
     const c = window.DISCCore.calcular(detalle);
-    return { natural: c.natural.dominante, adaptado: c.adaptado.dominante, legacy: false };
+    return {
+      natural: c.natural.dominante,
+      adaptado: c.adaptado.dominante,
+      legacy: false,
+      // §4 de PROPUESTA_CONSISTENCIA_DISC.md: nivel de definición del Natural,
+      // para no forzar una letra dura cuando la diferencia con la secundaria
+      // es mínima. undefined en tests legacy (más abajo) — se tratan como
+      // definidos, ningún consumidor los excluye por esto.
+      nivelDefinicionNatural: c.natural.nivel_definicion,
+      etiquetaNatural: c.natural.etiqueta,
+      secundariaNatural: c.natural.secundaria,
+      gapNatural: c.natural.gap,
+    };
   }
   if (!respuestasString || typeof window.discToWheel !== 'function') return null;
   const parsed = parseRespuestasDisc(respuestasString);
@@ -356,28 +368,46 @@ export function obtenerCompatibilidad(letraA, letraB) {
  */
 export function calcularStatsEquipo(personas) {
   const total = personas.length;
+
+  // Distribución "dura" por letra (identidad): excluye los perfiles con
+  // nivel_definicion 'mixto' (§4 de PROPUESTA_CONSISTENCIA_DISC.md) — no se
+  // les asigna una letra que su propio test no sostiene con margen suficiente.
+  // Tests legacy no tienen `nivelDefinicionNatural` (undefined !== 'mixto'):
+  // siguen contando como antes, sin cambio de comportamiento para ellos.
+  const definidos = personas.filter((p) => p.nivelDefinicionNatural !== 'mixto');
+  const mixtos = total - definidos.length;
   const distribucion = { D: 0, I: 0, S: 0, C: 0 };
-  personas.forEach((p) => {
+  definidos.forEach((p) => {
     if (distribucion[p.natural] !== undefined) distribucion[p.natural]++;
   });
 
   const estilosPresentes = Object.values(distribucion).filter((n) => n > 0).length;
-  const [letraDominante, countDominante] = Object.entries(distribucion).sort((a, b) => b[1] - a[1])[0];
+  const [letraDominante, countDominante] = definidos.length
+    ? Object.entries(distribucion).sort((a, b) => b[1] - a[1])[0]
+    : [null, 0];
 
-  const ritmo = { Rápido: distribucion.D + distribucion.I, Pausado: distribucion.S + distribucion.C };
+  // Ritmo y prioridad son ejes continuos, no una identidad de letra: entran
+  // TODAS las personas (mixtas incluidas), con su letra principal aunque el
+  // margen sobre la secundaria sea chico — eso no afecta de qué lado del eje caen.
+  const distribucionTotal = { D: 0, I: 0, S: 0, C: 0 };
+  personas.forEach((p) => {
+    if (distribucionTotal[p.natural] !== undefined) distribucionTotal[p.natural]++;
+  });
+  const ritmo = { Rápido: distribucionTotal.D + distribucionTotal.I, Pausado: distribucionTotal.S + distribucionTotal.C };
   const ritmoDominante = ritmo['Rápido'] >= ritmo['Pausado'] ? 'Rápido' : 'Pausado';
 
-  const prioridad = { Tareas: distribucion.D + distribucion.C, Personas: distribucion.I + distribucion.S };
+  const prioridad = { Tareas: distribucionTotal.D + distribucionTotal.C, Personas: distribucionTotal.I + distribucionTotal.S };
   const prioridadDominante = prioridad['Tareas'] >= prioridad['Personas'] ? 'Tareas' : 'Personas';
 
   const diversidad =
-    total > 0 && estilosPresentes > 0
-      ? Math.min(100, Math.round((estilosPresentes / 4) * 100 * (1 - Math.abs(0.5 - countDominante / total))))
+    definidos.length > 0 && estilosPresentes > 0
+      ? Math.min(100, Math.round((estilosPresentes / 4) * 100 * (1 - Math.abs(0.5 - countDominante / definidos.length))))
       : 0;
 
   return {
     total,
     distribucion,
+    mixtos,
     estilosPresentes,
     letraDominante,
     ritmo,

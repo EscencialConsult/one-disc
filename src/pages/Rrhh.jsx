@@ -339,7 +339,13 @@ function InformesTab({ personas, descargandoManual, onDescargarPackLider }) {
                   <td className="px-6 py-3">
                     <div className="flex items-center gap-2">
                       <LetraBadge letra={p.natural} />
-                      <span className="text-gray-300">{DISC_INFO[p.natural]?.nombre}</span>
+                      {p.nivelDefinicionNatural === 'mixto' || p.nivelDefinicionNatural === 'leve' ? (
+                        <span className="text-gray-300" title={`Gap con ${p.secundariaNatural}: ${p.gapNatural} preguntas`}>
+                          {p.etiquetaNatural}
+                        </span>
+                      ) : (
+                        <span className="text-gray-300">{DISC_INFO[p.natural]?.nombre}</span>
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-3">
@@ -938,6 +944,11 @@ export default function Rrhh() {
               adaptado: perfil.adaptado,
               // legacy = test tomado antes del arreglo del cálculo (sin letra real por pregunta)
               legacy: !!perfil.legacy,
+              // undefined en tests legacy — se tratan como definidos (ver calcularStatsEquipo)
+              nivelDefinicionNatural: perfil.nivelDefinicionNatural,
+              etiquetaNatural: perfil.etiquetaNatural,
+              secundariaNatural: perfil.secundariaNatural,
+              gapNatural: perfil.gapNatural,
               vectorNatural: calcularVectorNatural100(r.Respuestas, r.Detalle),
               vectorAdaptado: completo ? completo.vectorAdaptado : null,
               ritmoNatural: completo ? completo.ritmoNatural : null,
@@ -1127,7 +1138,7 @@ export default function Rrhh() {
               <StatCard value={stats.total} label="Evaluados" colorClass="text-blue-400" borderClass="border-blue-500/20" />
               <StatCard value={`${stats.estilosPresentes}/4`} label="Estilos presentes" colorClass="text-purple-400" borderClass="border-purple-500/20" />
               <StatCard
-                value={`${stats.letraDominante} · ${DISC_INFO[stats.letraDominante]?.nombre}`}
+                value={stats.letraDominante ? `${stats.letraDominante} · ${DISC_INFO[stats.letraDominante]?.nombre}` : '—'}
                 label="Estilo dominante"
                 colorClass="text-one-gold"
                 borderClass="border-one-gold/20"
@@ -1136,6 +1147,11 @@ export default function Rrhh() {
               <StatCard value={stats.prioridadDominante} label="Prioridad dominante" colorClass="text-green-400" borderClass="border-green-500/20" />
               <StatCard value={`${stats.diversidad}/100`} label="Índice diversidad" colorClass="text-one-cyan" borderClass="border-one-cyan/20" />
             </div>
+            {stats.mixtos > 0 && (
+              <p className="-mt-5 mb-8 text-xs text-gray-500">
+                {stats.mixtos} de {stats.total} {stats.mixtos === 1 ? 'persona tiene' : 'personas tienen'} un perfil mixto (sin letra dominante clara) y no {stats.mixtos === 1 ? 'entra' : 'entran'} en "Estilos presentes" ni en "Estilo dominante" — sí en ritmo, prioridad y diversidad. Ver detalle en la pestaña Informes.
+              </p>
+            )}
 
             {/* Gráfico principal + doughnuts de ejes */}
             <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">

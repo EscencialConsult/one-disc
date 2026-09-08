@@ -2471,7 +2471,12 @@ async function generarRueda() {
       if (diffTotal <= corteMuyEstable) {
         titulo = 'Perfil Muy Estable';
         color = COLORES.S;
-        interpretacion = `Tu comportamiento es consistente entre situaciones normales y bajo presión. Las diferencias son mínimas (${diffTotal} puntos de diferencia total). Esto indica que eres auténtico, tu comportamiento natural coincide con tu comportamiento adaptado, no modificas significativamente tu conducta bajo estrés y las personas te perciben como predecible y congruente. Tu entorno laboral actual te permite ser tú mismo, lo cual es positivo. Asegúrate de que este entorno realmente te permita desarrollar todo tu potencial.`;
+        // La diferencia total puede ser baja y aun así estar casi toda concentrada
+        // en una sola letra (core.estabilidad.concentrada) — ahí no corresponde
+        // decir "no modificas tu conducta" sin nombrar esa excepción puntual.
+        interpretacion = (core && core.estabilidad.concentrada)
+          ? `Tu comportamiento es consistente entre situaciones normales y bajo presión: el núcleo de tu perfil se mantiene y las diferencias totales son mínimas (${diffTotal} puntos). Hay una excepción puntual que vale la pena notar: la mayor parte de ese movimiento está concentrado en ${window.DISCCore.NOMBRES[core.estabilidad.letraMax]} (${core.estabilidad.letraMax}), que se ajusta más que el resto bajo presión. El resto de tu perfil se sostiene, y las personas te perciben como predecible y congruente en general. Tu entorno laboral actual te permite ser mayormente vos mismo, lo cual es positivo.`
+          : `Tu comportamiento es consistente entre situaciones normales y bajo presión. Las diferencias son mínimas (${diffTotal} puntos de diferencia total). Esto indica que eres auténtico, tu comportamiento natural coincide con tu comportamiento adaptado, no modificas significativamente tu conducta bajo estrés y las personas te perciben como predecible y congruente. Tu entorno laboral actual te permite ser tú mismo, lo cual es positivo. Asegúrate de que este entorno realmente te permita desarrollar todo tu potencial.`;
       } else if (diffTotal <= corteNucleo) {
         titulo = 'Perfil Adaptable con Núcleo Estable';
         color = COLORES.primario;
@@ -2664,7 +2669,20 @@ async function generarRueda() {
 
       y += 8;
 
-      const detalleP1 = resultado.detallePreguntas.filter(p => p.parte === 'I');
+      // `resultado.detallePreguntas` (armado en script.js) solo trae el grupo
+      // D/I o S/C, nunca la letra exacta — el PDF terminaba mostrando "S/C"
+      // aunque la leyenda dice "la letra exacta". Con `detalle` real (tests
+      // nuevos) se recalcula con discCore.detallePreguntas(), que sí la tiene;
+      // los textos de cada pregunta (D/I/S/C) se toman igual del `resultado`
+      // ya armado, solo cambia de dónde sale la letra elegida.
+      const detalleReal = (detalle && window.DISCCore)
+        ? window.DISCCore.detallePreguntas(
+            detalle,
+            resultado.detallePreguntas.map((p) => ({ id: p.numero, D: p.textoD, I: p.textoI, S: p.textoS, C: p.textoC }))
+          )
+        : resultado.detallePreguntas;
+
+      const detalleP1 = detalleReal.filter(p => p.parte === 'I');
       y = dibujarTablaDetalle(y, detalleP1);
 
       // Nueva página para Parte II
@@ -2676,7 +2694,7 @@ async function generarRueda() {
 
       y += 8;
 
-      const detalleP2 = resultado.detallePreguntas.filter(p => p.parte === 'II');
+      const detalleP2 = detalleReal.filter(p => p.parte === 'II');
       y = dibujarTablaDetalle(y, detalleP2);
 
       y += 10;

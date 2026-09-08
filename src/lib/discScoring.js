@@ -167,10 +167,10 @@ export const DISC_NOMBRES = { D: 'Dominante', I: 'Influyente', S: 'Sensato', C: 
  * Afinidad entre dos personas con cálculo real: no compara "una letra", sino
  * (a) la distancia entre sus cuatro valores Natural (0-100), (b) si comparten
  * ritmo y prioridad según su letra dominante, y (c) cuánto se adapta cada uno
- * bajo presión. Devuelve null si alguna de las dos es un test viejo.
+ * bajo presión. Con tests viejos usa el vector del cálculo anterior (sin estabilidad).
  */
 export function afinidadPersonas(a, b) {
-  if (!a || !b || a.legacy || b.legacy || !a.vectorNatural || !b.vectorNatural) return null;
+  if (!a || !b || !a.vectorNatural || !b.vectorNatural) return null;
   const letras = ['D', 'I', 'S', 'C'];
   const distancia = letras.reduce((acc, L) => acc + Math.abs(a.vectorNatural[L] - b.vectorNatural[L]), 0) / letras.length;
   const similitudVector = Math.max(0, Math.min(100, Math.round(100 - distancia)));

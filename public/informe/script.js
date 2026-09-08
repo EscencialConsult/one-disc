@@ -1205,10 +1205,6 @@ document.addEventListener("DOMContentLoaded", function () {
   // del núcleo (discCore.js). Tests viejos: null → algoritmo anterior.
   const detalle = (window.DISCCore && window.DISCCore.tieneDetalle(data.Detalle)) ? data.Detalle : null;
   window.__discDetalle = detalle;
-  if (!detalle) {
-    const aviso = document.getElementById('avisoVersionAnterior');
-    if (aviso) aviso.classList.remove('hidden');
-  }
 
   // Render everything
   renderReport(data, resultado, datosParsed.respuestas, detalle);

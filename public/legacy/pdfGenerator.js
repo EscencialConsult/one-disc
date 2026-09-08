@@ -1707,12 +1707,6 @@ async function generarPDFInforme(data, resultado, respuestasParsed, returnBase64
       doc.setFontSize(9);
       const lectura = 'En el test se presentaron 28 grupos de 4 características. Para cada grupo seleccionaste la característica que MÁS te describe y la que MENOS te describe. Los valores "MÁS" indican identificación con ese tipo de comportamiento, mientras que "MENOS" indica rechazo. Cada par (MÁS/MENOS) suma 28, el total de preguntas.';
       y = dibujarTexto(lectura, 20, y, 170, 9, COLORES.textoClaro);
-
-      if (!core) {
-        y += 6;
-        const nota = 'Nota: este test fue tomado con la versión anterior del algoritmo. El gráfico D/I/S/C, la rueda y la comparación Natural/Adaptado son aproximados; los resultados por eje (Activa D/I vs Reservada S/C) son exactos.';
-        y = dibujarTexto(nota, 20, y, 170, 8, COLORES.textoClaro);
-      }
     }
 
     // ========== GRÁFICO DE BARRAS DISC ==========

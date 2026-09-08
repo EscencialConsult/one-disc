@@ -28,10 +28,10 @@
   // 8 roles de 45° desde arriba, en sentido horario (idéntico a ruedaSuccessInsights5niveles.js).
   const ROLES = ['CONDUCTOR', 'PERSUASOR', 'PROMOTOR', 'RELACIONADOR', 'COLABORADOR', 'COORDINADOR', 'ANALIZADOR', 'IMPLEMENTADOR'];
 
-  // Umbrales — PROPUESTA INICIAL, a validar con María Laura (Fase 6 del plan).
-  const UMBRAL_PREDOMINANTE = 60;   // sobre la escala 0-100 por letra (equivale a un neto ≥ +3 sobre 14)
+  // Umbrales validados por simulación (7/9/2026, ver PLAN_ARREGLO_DISC.md Fase 6).
+  const UMBRAL_PREDOMINANTE = 60;   // sobre la escala 0-100 por letra (sobre el total de 28 preguntas equivale a un neto MÁS−MENOS ≥ +6)
   const UMBRAL_BAJO = 40;
-  const ESTABILIDAD = { muyEstable: 10, nucleoEstable: 20 }; // suma de |Natural − Adaptado| en las 4 letras (0–112)
+  const ESTABILIDAD = { muyEstable: 10, nucleoEstable: 20 }; // suma de |Natural − Adaptado| en las 4 letras (0–56, siempre par)
 
   function esLetra(x) { return LETRAS.indexOf(x) !== -1; }
 

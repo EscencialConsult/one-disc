@@ -87,6 +87,12 @@ Decisión de Facundo (7/9/2026): **se mantienen los nombres actuales** de la Lan
 
 ## Fase 6 — Validación final y salida a producción
 
+**Decisión de Facundo (7/9/2026): el cambio de algoritmo es invisible para el usuario.** No hay avisos de "versión anterior" en ningún lado (Panel RRHH, informe web, PDF) y los tests viejos entran en todos los análisis del Panel RRHH con su cálculo anterior. Esto reemplaza lo dicho en la Fase 4 sobre marcar/excluir tests viejos.
+
+**Umbrales (validados por simulación, no por María Laura):** se mantienen `UMBRAL_PREDOMINANTE = 60` (neto ≥ +6 sobre 28) y `ESTABILIDAD = 10/20`. Con 40.000 tests simulados por escenario: una persona que responde al azar queda sin ninguna letra "predominante" el 72% de las veces; una persona con una preferencia clara aunque moderada obtiene "predominante" en su letra real el 100% de las veces y nunca en una letra falsa. Estabilidad: una persona idéntica en ambas partes cae en "muy estable" o "núcleo estable" el 95–100%; una que cambia de D a S bajo presión cae en "adaptación significativa" el 100%. Los 19 de COMRURAL (solo eje D/I) son coherentes con eso: |Δ Natural−Adaptado| mediana 4, máximo 11.
+
+**Auditoría de tests nuevos:** `node scripts/disc-auditar.mjs <disc_id>` imprime pregunta por pregunta lo que eligió la persona y recalcula todo (conteos, netos, barras, rueda, estabilidad), y verifica la coherencia interna. Reemplaza la auditoría manual.
+
 **Estado (7/9/2026):** puntos 1 y 3 hechos. Migración `migration_detalle_disc.sql` aplicada en Supabase. Test real tomado por la plataforma con un usuario temporal (perfil elegido: Natural D+C, Adaptado S): la fila quedó con `detalle` de 28 pares idénticos a lo clickeado y con PDF subido; el informe web mostró D 71 / I 13 / S 54 / C 63, rueda "Conductor · Celda 10 · 0°", estabilidad con MÁS+MENOS, detalle con palabra y letra, sin aviso de versión anterior; el Panel RRHH lo listó como D con los 14 tests viejos marcados "versión anterior" y fuera de los promedios. Regresión: 19/19 iguales a la baseline. Datos de prueba borrados. Faltan los puntos 2, 4 y 5.
 
 1. Regresión: los 19 tests viejos dan exactamente lo mismo que antes de empezar (Fase 0).

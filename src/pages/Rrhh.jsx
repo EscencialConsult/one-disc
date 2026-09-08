@@ -132,22 +132,23 @@ function AfinidadReal({ a, b }) {
   if (!af) {
     return (
       <div className="mb-6 rounded-2xl border border-one-gold/30 bg-one-gold/5 p-5 text-sm text-gray-300">
-        {a.legacy || b.legacy
-          ? 'Al menos uno de los dos tests fue tomado con la versión anterior del algoritmo: la afinidad calculada no está disponible (la letra es aproximada). Los consejos de abajo siguen siendo válidos como referencia por estilo.'
-          : 'No se pudo calcular la afinidad.'}
+        No se pudo calcular la afinidad. Los consejos de abajo siguen siendo válidos como referencia por estilo.
       </div>
     );
   }
   const letras = ['D', 'I', 'S', 'C'];
   const color = af.nivel === 'Alta' ? 'text-green-400' : af.nivel === 'Media' ? 'text-yellow-400' : 'text-red-400';
+  // Los tests sin letra real por pregunta no tienen valores por dimensión ni
+  // comparación bajo presión confiables: se muestra solo el resumen.
+  const detallado = !a.legacy && !b.legacy;
   return (
     <div className="mb-6 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-xl">
       <div className="flex items-center justify-between border-b border-white/10 bg-gradient-to-r from-one-cyan/10 to-one-pink/10 px-6 py-4">
         <h3 className="font-title text-lg font-bold">Afinidad calculada</h3>
         <span className={`font-title text-2xl font-black ${color}`}>{af.pct}% · {af.nivel}</span>
       </div>
-      <div className="grid grid-cols-1 gap-6 p-6 md:grid-cols-2">
-        <div className="space-y-2">
+      <div className={`grid grid-cols-1 gap-6 p-6 ${detallado ? 'md:grid-cols-2' : ''}`}>
+        {detallado && <div className="space-y-2">
           {letras.map((L) => (
             <div key={L} className="flex items-center gap-3 text-xs">
               <LetraBadge letra={L} />
@@ -165,12 +166,12 @@ function AfinidadReal({ a, b }) {
               </div>
             </div>
           ))}
-        </div>
+        </div>}
         <ul className="space-y-2 text-sm text-gray-300">
           <li>Similitud de perfiles (4 dimensiones): <strong className="text-gray-100">{af.similitudVector}%</strong></li>
           <li>Ritmo: {af.compartenRitmo ? <span className="text-green-400">comparten</span> : <span className="text-yellow-400">difieren</span>} · Prioridad: {af.compartenPrioridad ? <span className="text-green-400">comparten</span> : <span className="text-yellow-400">difieren</span>}</li>
-          <li>Cambio bajo presión — {a.nombre.split(' ')[0]}: <strong className="text-gray-100">{af.adaptacionA}</strong> · {b.nombre.split(' ')[0]}: <strong className="text-gray-100">{af.adaptacionB}</strong> <span className="text-gray-500">(0 = idéntico, más alto = más adaptación)</span></li>
-          <li className="text-xs text-gray-500">La afinidad baja si alguno de los dos cambia mucho bajo presión: lo que se ve en calma puede no sostenerse.</li>
+          {detallado && <li>Cambio bajo presión — {a.nombre.split(' ')[0]}: <strong className="text-gray-100">{af.adaptacionA}</strong> · {b.nombre.split(' ')[0]}: <strong className="text-gray-100">{af.adaptacionB}</strong> <span className="text-gray-500">(0 = idéntico, más alto = más adaptación)</span></li>}
+          {detallado && <li className="text-xs text-gray-500">La afinidad baja si alguno de los dos cambia mucho bajo presión: lo que se ve en calma puede no sostenerse.</li>}
         </ul>
       </div>
     </div>
@@ -209,7 +210,7 @@ function ComparacionPersonas({ personas }) {
               <option value="">-- Seleccionar --</option>
               {personas.map((p) => (
                 <option key={p.usuario} value={p.usuario} disabled={p.usuario === usuarioB}>
-                  {p.nombre} ({p.natural}){p.legacy ? ' — versión anterior' : ''}
+                  {p.nombre} ({p.natural})
                 </option>
               ))}
             </select>
@@ -224,7 +225,7 @@ function ComparacionPersonas({ personas }) {
               <option value="">-- Seleccionar --</option>
               {personas.map((p) => (
                 <option key={p.usuario} value={p.usuario} disabled={p.usuario === usuarioA}>
-                  {p.nombre} ({p.natural}){p.legacy ? ' — versión anterior' : ''}
+                  {p.nombre} ({p.natural})
                 </option>
               ))}
             </select>
@@ -311,11 +312,6 @@ function InformesTab({ personas, descargandoManual, onDescargarPackLider }) {
                     <div className="flex items-center gap-2">
                       <LetraBadge letra={p.natural} />
                       <span className="text-gray-300">{DISC_INFO[p.natural]?.nombre}</span>
-                      {p.legacy && (
-                        <span className="rounded-full border border-one-gold/30 bg-one-gold/10 px-2 py-0.5 text-[10px] font-semibold text-one-gold" title="Test tomado con la versión anterior del algoritmo: la letra es aproximada">
-                          versión anterior
-                        </span>
-                      )}
                     </div>
                   </td>
                   <td className="px-6 py-3">
@@ -934,11 +930,9 @@ export default function Rrhh() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Los tests viejos (sin letra real) no entran en promedios, cultura ni
-  // compatibilidad: su letra es una aproximación (ver AUDITORIA_DISC_COMRURAL.md).
-  const personasReales = useMemo(() => personas.filter((p) => !p.legacy), [personas]);
-  const cantidadLegacy = personas.length - personasReales.length;
-  const stats = useMemo(() => calcularStatsEquipo(personasReales), [personasReales]);
+  // Todas las personas entran en el análisis. Las de tests viejos (sin letra
+  // real por pregunta) usan el cálculo anterior; la diferencia no se muestra.
+  const stats = useMemo(() => calcularStatsEquipo(personas), [personas]);
   const { total, distribucion } = stats;
 
   /** Genera y descarga el Manual Personalizado (Pack Líder) de una persona —
@@ -1087,20 +1081,11 @@ export default function Rrhh() {
         ) : tab === 'informes' ? (
           <InformesTab personas={personas} descargandoManual={descargandoManual} onDescargarPackLider={descargarPackLider} />
         ) : tab === 'cultura' ? (
-          <CulturaTab personas={personasReales} />
+          <CulturaTab personas={personas} />
         ) : tab === 'compatibilidad' ? (
-          <CompatibilidadTab personas={personasReales} />
-        ) : total === 0 ? (
-          <div className="rounded-2xl border border-one-gold/30 bg-one-gold/5 p-10 text-center text-gray-300">
-            Los {cantidadLegacy} test(s) de tu equipo fueron tomados con la versión anterior del algoritmo y no entran en el análisis de equipo. Los tests nuevos van a aparecer acá automáticamente.
-          </div>
+          <CompatibilidadTab personas={personas} />
         ) : (
           <>
-            {cantidadLegacy > 0 && (
-              <div className="mb-6 rounded-xl border border-one-gold/30 bg-one-gold/5 px-4 py-3 text-xs text-one-gold">
-                {cantidadLegacy} test(s) tomados con la versión anterior del algoritmo no entran en estos números (ver "Informes").
-              </div>
-            )}
             {/* Mini resumen (KPIs) */}
             <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-6">
               <StatCard value={stats.total} label="Evaluados" colorClass="text-blue-400" borderClass="border-blue-500/20" />
